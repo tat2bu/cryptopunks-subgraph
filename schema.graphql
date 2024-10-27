@@ -1,0 +1,76 @@
+type Account @entity {
+  id: ID!
+  punks: [Punk!]!
+}
+
+type Punk @entity {
+  id: ID!
+  owner: Account!
+  wrapped: Boolean!
+  bid: Bid @derivedFrom(field: "punk")
+  listing: Listing @derivedFrom(field: "punk")
+}
+
+type Listing @entity {
+  id: ID!
+  punk: Punk!
+  value: BigInt! # uint256
+  usd: BigInt
+  fromAccount: Account!
+  toAccount: Account!
+  isPrivate: Boolean!
+  
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type Bid @entity {
+  id: ID!
+  punk: Punk!
+  value: BigInt! # uint256
+  usd: BigInt
+  fromAccount: Account!
+
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type Event @entity {
+  id: ID!
+  transactionHash: Bytes!
+  type: String!
+  tokenId: BigInt! # uint256
+  fromAccount: Account
+  toAccount: Account
+  value: BigInt! # uint256
+  usd: BigInt
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  # isFlagged: Boolean
+}
+
+type State @entity {
+  id: ID!
+  timestamp: BigInt!
+  floor: BigInt!
+  volume: BigInt!
+  topBid: Event
+  bids: BigInt!
+  topSale: Event
+  sales: BigInt!
+  owners: BigInt!
+  activeListings: [Listing!]!
+  listings: BigInt!
+  delistings: BigInt!
+  usd: BigInt
+}
+
+type Transfer @entity {
+  id: ID! # <txHash>--<tokenId>
+  from: String!
+  to: String!
+  transactionHash: Bytes!
+  tokenId: String # uint256
+}
