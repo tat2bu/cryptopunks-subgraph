@@ -199,7 +199,6 @@ export function handlePunkBought(event: PunkBoughtEvent): void {
   evnt.tokenId = event.params.punkIndex;
   evnt.fromAccount = fromAccount.id;
   evnt.toAccount = toAccount.id;
-  value = isWash ? BIGINT_ZERO : value;
   evnt.value = value;
   evnt.usd = USDValue(event.block.timestamp, event.block.number);
   evnt.blockNumber = event.block.number;
