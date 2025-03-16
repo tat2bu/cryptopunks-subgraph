@@ -1,7 +1,6 @@
 import { BigInt } from '@graphprotocol/graph-ts';
 
 export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
-export const WRAPPER_ADDRESS = '0xb7f7f6c52f2e2fdb1963eab30438024864c313f6'.toLowerCase();
 
 export const EACAggregatorProxyStartBlock = BigInt.fromI32(10606501);
 

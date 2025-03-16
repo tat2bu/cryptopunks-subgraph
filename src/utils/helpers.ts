@@ -7,7 +7,7 @@ import { BigInt, Bytes, ethereum, log, store } from '@graphprotocol/graph-ts';
 
 import { Account, Bid, Event, Listing, Punk, State, Transfer } from '../../generated/schema';
 
-import { Transfer as TransferEvent, } from '../../generated/CryptoPunksMarket/CryptoPunksMarket';
+import { Transfer as TransferEvent, } from '../../generated/CryptoPhunks/CryptoPhunks';
 
 import { timestampToId } from './date-utils';
 import { BIGINT_ZERO, ZERO_ADDRESS } from './constants';

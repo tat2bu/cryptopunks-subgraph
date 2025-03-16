@@ -3,12 +3,12 @@ schema:
   file: ./schema.graphql
 dataSources:
   - kind: ethereum
-    name: CryptoPunksMarket
+    name: CryptoPhunks
     network: mainnet
     source:
-      abi: CryptoPunksMarket
-      address: "0xb47e3cd837ddf8e4c57f05d70ab865de6e193bbb"
-      startBlock: 3914495 # Mainnet
+      abi: CryptoPhunks
+      address: "0xf07468ead8cf26c752c676e43c814fee9c8cf402"
+      startBlock: 12674389 # Mainnet
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -21,8 +21,8 @@ dataSources:
         - Event
         - State
       abis:
-        - name: CryptoPunksMarket
-          file: ./abis/CryptoPunksMarket.json
+        - name: CryptoPhunks
+          file: ./abis/CryptoPhunks.json
         - name: AggregatorV3Interface
           file: ./abis/AggregatorV3Interface.json
       eventHandlers:
@@ -42,4 +42,4 @@ dataSources:
           handler: handlePunkBought
         - event: PunkNoLongerForSale(indexed uint256)
           handler: handlePunkNoLongerForSale
-      file: ./src/crypto-punks-market.ts
+      file: ./src/crypto-phunks.ts
