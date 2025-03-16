@@ -7,7 +7,7 @@ import { BigInt, Bytes, ethereum, log, store } from '@graphprotocol/graph-ts';
 
 import { Account, Bid, Event, Listing, Punk, State, Transfer } from '../../generated/schema';
 
-import { Transfer as TransferEvent, } from '../../generated/CryptoPhunks/CryptoPhunks';
+// import { Transfer as TransferEvent, } from '../../generated/CryptoPhunks/CryptoPhunks';
 
 import { timestampToId } from './date-utils';
 import { BIGINT_ZERO, ZERO_ADDRESS } from './constants';
@@ -31,6 +31,7 @@ export function getGlobalId(event: ethereum.Event): string {
  * @param event - The TransferEvent.
  * @returns The Transfer entity.
  */
+/*
 export function getOrCreateTransfer(event: TransferEvent): Transfer {
 	let transferId = event.transaction.hash.toHexString();
 
@@ -45,6 +46,7 @@ export function getOrCreateTransfer(event: TransferEvent): Transfer {
 
 	return transfer;
 }
+*/
 
 /**
  * Gets or creates an Account entity.
