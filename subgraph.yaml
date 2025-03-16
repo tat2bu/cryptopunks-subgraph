@@ -23,17 +23,15 @@ dataSources:
       abis:
         - name: CryptoPhunks
           file: ./abis/CryptoPhunks.json
+        - name: CryptoPhunksMarket
+          file: ./abis/CryptoPhunksMarket.json
         - name: AggregatorV3Interface
           file: ./abis/AggregatorV3Interface.json
       eventHandlers:
-        - event: Assign(indexed address,uint256)
-          handler: handleAssign
-        - event: Transfer(indexed address,indexed address,uint256)
+        - event: Transfer(indexed address,indexed address,indexed uint256)
           handler: handleTransfer
-        - event: PunkTransfer(indexed address,indexed address,uint256)
-          handler: handlePunkTransfer
-        - event: PunkOffered(indexed uint256,uint256,indexed address)
-          handler: handlePunkOffered
+        - event: PhunkOffered(indexed uint256,uint256,indexed address)
+          handler: handlePhunkOffered
         - event: PunkBidEntered(indexed uint256,uint256,indexed address)
           handler: handlePunkBidEntered
         - event: PunkBidWithdrawn(indexed uint256,uint256,indexed address)
