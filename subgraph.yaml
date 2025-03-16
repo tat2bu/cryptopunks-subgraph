@@ -8,7 +8,7 @@ dataSources:
     source:
       abi: CryptoPhunks
       address: "0xd6c037be7fa60587e174db7a6710f7635d2971e7"
-      startBlock: 12674389 # Mainnet
+      startBlock: 13817852 # Mainnet
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
