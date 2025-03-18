@@ -28,8 +28,6 @@ dataSources:
         - name: AggregatorV3Interface
           file: ./abis/AggregatorV3Interface.json
       eventHandlers:
-#        - event: Transfer(indexed address,indexed address,indexed uint256)
-#          handler: handleTransfer
         - event: PhunkOffered(indexed uint256,uint256,indexed address)
           handler: handlePhunkOffered
         - event: PhunkBidEntered(indexed uint256,uint256,indexed address)
@@ -41,3 +39,29 @@ dataSources:
         - event: PhunkNoLongerForSale(indexed uint256)
           handler: handlePhunkNoLongerForSale
       file: ./src/crypto-phunks.ts
+
+  - kind: ethereum
+    name: CryptoPhunksToken
+    network: mainnet
+    source:
+      abi: CryptoPhunksToken
+      address: "0xf07468ead8cf26c752c676e43c814fee9c8cf402"
+      startBlock: 12674389 # Mainnet
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Account
+        - Punk
+        - Listing
+        - Bid
+        - Event
+        - State
+      abis:
+        - name: CryptoPhunksToken
+          file: ./abis/CryptoPhunksToken.json
+      eventHandlers:
+        - event: Transfer(indexed address,indexed address,indexed uint256)
+          handler: handleTransfer
+      file: ./src/crypto-phunks.ts      
