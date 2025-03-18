@@ -61,6 +61,8 @@ dataSources:
       abis:
         - name: CryptoPhunksToken
           file: ./abis/CryptoPhunksToken.json
+        - name: AggregatorV3Interface
+          file: ./abis/AggregatorV3Interface.json
       eventHandlers:
         - event: Transfer(indexed address,indexed address,indexed uint256)
           handler: handleTransfer
