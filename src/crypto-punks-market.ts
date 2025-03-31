@@ -268,46 +268,44 @@ export function handlePunkOffered(event: PunkOfferedEvent): void {
   listing.save();
 
   // Events
-  if (!listing.isPrivate) {
-    let evntId = getGlobalId(event);
-    let evnt = new Event(evntId);
+  let evntId = getGlobalId(event);
+  let evnt = new Event(evntId);
 
-    evnt.type = 'Offered';
-    evnt.tokenId = event.params.punkIndex;
+  evnt.type = 'Offered';
+  evnt.tokenId = event.params.punkIndex;
 
-    evnt.fromAccount = fromAccount.id;
-    evnt.toAccount = toAccount.id;
-    evnt.value = event.params.minValue;
+  evnt.fromAccount = fromAccount.id;
+  evnt.toAccount = toAccount.id;
+  evnt.value = event.params.minValue;
 
-    evnt.usd = USDValue(event.block.timestamp, event.block.number);
+  evnt.usd = USDValue(event.block.timestamp, event.block.number);
 
-    evnt.blockNumber = event.block.number;
-    evnt.blockTimestamp = event.block.timestamp;
-    evnt.transactionHash = event.transaction.hash;
-    evnt.save();
+  evnt.blockNumber = event.block.number;
+  evnt.blockTimestamp = event.block.timestamp;
+  evnt.transactionHash = event.transaction.hash;
+  evnt.save();
 
-    let state = getOrCreateState(event.block.timestamp);
-    let newListingState = state.listings.plus(BIGINT_ONE);
-    state.listings = newListingState;
-  
-    let activeListings: string[] = [];
-    if (state.activeListings) activeListings = state.activeListings;
-    activeListings.push(punkOfferedTokenId);
-  
-    state.activeListings = activeListings;
-  
-    let listingVal = event.params.minValue;
-    if (
-      toAccount.id != ZERO_ADDRESS && 
-      listingVal.notEqual(BIGINT_ZERO) && 
-      listingVal.lt(state.floor)
-    ) {
-      state.floor = listingVal;  
-    }
-    state.usd = USDValue(event.block.timestamp, event.block.number);
-  
-    state.save();
+  let state = getOrCreateState(event.block.timestamp);
+  let newListingState = state.listings.plus(BIGINT_ONE);
+  state.listings = newListingState;
+
+  let activeListings: string[] = [];
+  if (state.activeListings) activeListings = state.activeListings;
+  activeListings.push(punkOfferedTokenId);
+
+  state.activeListings = activeListings;
+
+  let listingVal = event.params.minValue;
+  if (
+    toAccount.id != ZERO_ADDRESS && 
+    listingVal.notEqual(BIGINT_ZERO) && 
+    listingVal.lt(state.floor)
+  ) {
+    state.floor = listingVal;  
   }
+  state.usd = USDValue(event.block.timestamp, event.block.number);
+
+  state.save();
 }
 
 let punkBidEnteredTokenId: string;
