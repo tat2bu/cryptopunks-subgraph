@@ -4,6 +4,7 @@
 # Compiled output
 /build
 /generated
+/graph-node
 
 # Node
 /node_modules

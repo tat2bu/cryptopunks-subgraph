@@ -7,7 +7,7 @@
     "deploy": "graph deploy --node https://api.studio.thegraph.com/deploy/ cryptopunks_eth",
     "create-local": "graph create --node http://localhost:8020/ cryptopunks_eth",
     "remove-local": "graph remove --node http://localhost:8020/ cryptopunks_eth",
-    "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://ipfs.dappnode:5001 cryptopunks_eth",
+    "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 cryptopunks_eth",
     "test": "graph test"
   },
   "dependencies": {
