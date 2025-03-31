@@ -1,76 +1,151 @@
 # CryptoPunks Subgraph
 
-This subgraph indexes and tracks data from the CryptoPunks NFT collection on the Ethereum blockchain. It provides a comprehensive view of CryptoPunks transactions, ownership, bids, listings, and market statistics using The Graph Protocol.
+This subgraph indexes and tracks CryptoPunks marketplace data for [cryptopunks.eth.limo](https://cryptopunks.eth.limo), a community-based marketplace. It provides real-time data about CryptoPunks sales, transfers, bids, and market activities on the Ethereum mainnet.
 
-## Overview
-
-The CryptoPunks subgraph is built using The Graph, a decentralized protocol for indexing and querying blockchain data. This subgraph specifically tracks various events from the CryptoPunksMarket smart contract, creating and maintaining entities such as Punks, Accounts, Bids, Listings, Events, and State to provide a rich dataset for querying CryptoPunks-related information.
+🔗 **[View this subgraph on The Graph Explorer](https://thegraph.com/explorer/subgraphs/CWCx5K9VPUCgvUCNnY2jX73VTuKy47kRdZ3VVbPKdSvj?view=Query&chain=arbitrum-one)**
 
 ## Features
 
-- Track Punk ownership and transfers
-- Monitor bids and listings
-- Record sales and price history
-- Calculate floor prices and market statistics
-- Convert ETH values to USD using Chainlink price feed
-- Historical price data for early transactions
+- Track CryptoPunk ownership and transfers
+- Monitor marketplace activities (listings, bids, sales)
+- Track floor prices and market volume
+- USD price conversion for transactions
+- Historical event tracking
+- Market statistics and analytics
 
-## The Graph Protocol
+## Schema
 
-This subgraph is built on The Graph, an indexing protocol for querying networks like Ethereum. It allows for efficient, decentralized, and real-time data indexing from blockchain events and state changes. The Graph uses GraphQL as a query language, providing a powerful and flexible way to request exactly the data you need.
+### Main Entities
 
-## Key Components
+- **Account**: Tracks punk ownership and user activities
+- **Punk**: Individual CryptoPunk data and current state
+- **Listing**: Active and historical punk listings
+- **Bid**: Bid information and history
+- **Event**: All marketplace events
+- **State**: Global market statistics and state
+- **Transfer**: Token transfer records
 
-1. Schema (`schema.graphql`): Defines the data structure for the subgraph.
-2. Subgraph Manifest (`subgraph.yaml`): Configuration file for the subgraph.
-3. Mapping (`src/crypto-punks-market.ts`): Contains the event handling logic.
-4. Helpers (`src/utils/`): Utility functions for various operations.
-
-## Getting Started
+## Installation
 
 1. Install dependencies:
-   ```
-   yarn install
-   ```
+```bash
+yarn install
+```
 
 2. Generate types:
-   ```
-   yarn codegen
-   ```
+```bash
+yarn codegen
+```
 
 3. Build the subgraph:
-   ```
-   yarn build
-   ```
+```bash
+yarn build
+```
 
-4. Deploy the subgraph:
-   ```
-   yarn deploy
-   ```
+## Deployment
 
-## Key Features Explained
+### Local Deployment
+```bash
+# Create a local instance
+yarn create-local
 
-### Event Handling
+# Deploy to local node
+yarn deploy-local
+```
 
-The subgraph handles various events from the CryptoPunksMarket contract, including Assign, Transfer, PunkTransfer, PunkOffered, PunkBidEntered, PunkBidWithdrawn, PunkBought, and PunkNoLongerForSale.
+### Production Deployment
+```bash
+# Deploy to The Graph Studio
+yarn deploy
+```
 
-These event handlers update the subgraph's state based on on-chain events, ensuring accurate and up-to-date data.
+## Example Queries
 
-### Price Conversion
+### Get Punk Details with Current Listing
+```graphql
+{
+  punk(id: "1") {
+    id
+    owner {
+      id
+    }
+    wrapped
+    listing {
+      value
+      usd
+    }
+    bid {
+      value
+      fromAccount {
+        id
+      }
+    }
+  }
+}
+```
 
-The subgraph uses two methods for ETH to USD conversion:
-
-1. Chainlink Price Feed: For recent transactions, it queries the Chainlink ETH/USD price feed in real-time.
-2. Historical Price Data: For older transactions (before the Chainlink feed was available), it uses a predefined set of historical price points.
-
-### Floor Price Calculation
-
-The subgraph calculates and updates the floor price based on active listings.
+### Get Recent Sales
+```graphql
+{
+  events(
+    first: 10
+    orderBy: blockTimestamp
+    orderDirection: desc
+    where: { type: "SALE" }
+  ) {
+    tokenId
+    value
+    usd
+    fromAccount {
+      id
+    }
+    toAccount {
+      id
+    }
+    blockTimestamp
+  }
+}
+```
 
 ## Contributing
 
-Contributions to improve the subgraph are welcome. Please submit issues and pull requests on the project's GitHub repository.
+Contributions are welcome! Here's how you can help:
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+### Development Guidelines
+
+- Follow the existing code style and conventions
+- Add appropriate comments and documentation
+- Test your changes thoroughly
+- Update the schema documentation if you modify entities
+- Keep the code modular and maintainable
+
+## Technical Details
+
+- **Network**: Ethereum Mainnet
+- **Contract Address**: `0xb47e3cd837ddf8e4c57f05d70ab865de6e193bbb`
+- **Start Block**: 3914495
+- **Framework**: The Graph Protocol
+- **Language**: AssemblyScript
+
+## Dependencies
+
+- @graphprotocol/graph-cli: ^0.87.0
+- @graphprotocol/graph-ts: ^0.35.1
+- matchstick-as: 0.5.0 (dev)
 
 ## License
 
-This project is licensed under the Creative Commons CC0 1.0 Universal license. See the [LICENSE](LICENSE) file for details.
+This project is licensed under the UNLICENSED License - see the [LICENSE](LICENSE) file for details.
+
+## Support
+
+For questions, issues, or support:
+- Open an issue in this repository
+- Join [The Graph Protocol Discord](https://discord.com/invite/graphprotocol)
+- Visit [The Graph Documentation](https://thegraph.com/docs/)
