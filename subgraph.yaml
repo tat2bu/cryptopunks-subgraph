@@ -41,6 +41,32 @@ dataSources:
       file: ./src/crypto-phunks.ts
 
   - kind: ethereum
+    name: Seaport1.6
+    network: mainnet
+    source:
+      abi: Seaport1.6
+      address: "0x0000000000000068f116a894984e2db1123eb395"
+      startBlock: 13817852 # Mainnet
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Account
+        - Punk
+        - Listing
+        - Bid
+        - Event
+        - State
+      abis:
+        - name: Seaport1.6
+          file: ./abis/Seaport1.6.json
+      eventHandlers:
+        - event: OrderFulfilled(bytes32,indexed address,indexed address,address,(uint8,address,uint256,uint256)[],(uint8,address,uint256,uint256,address)[])
+          handler: handleOrderFulfilled
+      file: ./src/crypto-phunks.ts
+
+  - kind: ethereum
     name: CryptoPhunksToken
     network: mainnet
     source:

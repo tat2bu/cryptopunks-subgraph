@@ -3,7 +3,7 @@
  * @description Handles events from the CryptoPunksMarket contract and updates the subgraph accordingly.
  */
 
-import { BigInt, store } from '@graphprotocol/graph-ts';
+import { BigInt, log, store } from '@graphprotocol/graph-ts';
 
 import { Account, Bid, Event, Listing, Punk, Transfer } from '../generated/schema';
 
@@ -14,6 +14,10 @@ import {
   PhunkBought as PhunkBoughtEvent,
   PhunkNoLongerForSale as PunkNoLongerForSaleEvent,
 } from '../generated/CryptoPhunks/CryptoPhunks';
+
+import {
+  OrderFulfilled
+} from '../generated/Seaport1.6/Seaport1_6'
 
 import {
   Transfer as PhunkTransfer
@@ -143,6 +147,10 @@ export function handleTransfer(event: PhunkTransfer): void {
   );
 }
 
+export function handleOrderFulfilled(event: OrderFulfilled): void {
+
+  log.debug(`handleOrderFulfilled(): TXHash: {}`, [event.transaction.hash.toHexString()]);  
+}
 
 let punkBoughtTokenId: string;
 /**
