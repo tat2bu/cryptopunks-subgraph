@@ -41,6 +41,7 @@ type Event @entity {
   id: ID!
   transactionHash: Bytes!
   type: String!
+  platform: String!
   tokenId: BigInt! # uint256
   fromAccount: Account
   toAccount: Account
@@ -73,4 +74,39 @@ type Transfer @entity {
   to: String!
   transactionHash: Bytes!
   tokenId: String # uint256
+}
+
+
+type Bundle @entity {
+  id: ID!
+  platform: String!
+  offerer: Bytes!
+  buyer: Bytes!
+  recipient: Bytes!
+  tokenContracts: [Bytes!]!
+  tokenIds: [BigInt!]!
+  paymentToken: Bytes!
+  paymentAmount: BigInt!
+  timestamp: BigInt!
+  transaction: Bytes!
+}
+
+type FeeRecipient @entity {
+  id: ID!
+  recipient: Bytes!
+  amount: BigInt!
+  event: Event!
+}
+
+type BlurExecutionContext @entity {
+  id: ID! # tx hash
+  tokenIds: [BigInt!]!
+  collection: Bytes!
+  from: Bytes!
+  to: Bytes!
+  paymentAmount: BigInt
+  paymentToken: Bytes
+  isBid: Boolean!
+  hasExecution: Boolean! # détecté ou pas
+  timestamp: BigInt!
 }

@@ -3,12 +3,13 @@ schema:
   file: ./schema.graphql
 dataSources:
   - kind: ethereum
-    name: CryptoPhunks
+    name: CryptoPunksV1
     network: mainnet
     source:
-      abi: CryptoPhunks
-      address: "0xd6c037be7fa60587e174db7a6710f7635d2971e7"
-      startBlock: 13817852 # Mainnet
+      abi: CryptoPunksV1
+      address: "0x759c6C1923910930C18ef490B3c3DbeFf24003cE"
+      # startBlock: 14066948 # Mainnet
+      startBlock: 22331156 # Mainnet
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -21,32 +22,33 @@ dataSources:
         - Event
         - State
       abis:
-        - name: CryptoPhunks
-          file: ./abis/CryptoPhunks.json
-        - name: CryptoPhunksToken
-          file: ./abis/CryptoPhunksToken.json
+        - name: CryptoPunksV1
+          file: ./abis/CryptoPunksV1.json
+        - name: CryptoPunksV1Token
+          file: ./abis/CryptoPunksV1Token.json
         - name: AggregatorV3Interface
           file: ./abis/AggregatorV3Interface.json
       eventHandlers:
-        - event: PhunkOffered(indexed uint256,uint256,indexed address)
-          handler: handlePhunkOffered
-        - event: PhunkBidEntered(indexed uint256,uint256,indexed address)
-          handler: handlePhunkBidEntered
-        - event: PhunkBidWithdrawn(indexed uint256,uint256,indexed address)
-          handler: handlePhunkBidWithdrawn
-        - event: PhunkBought(indexed uint256,uint256,indexed address,indexed address)
-          handler: handlePhunkBought
-        - event: PhunkNoLongerForSale(indexed uint256)
-          handler: handlePhunkNoLongerForSale
-      file: ./src/crypto-phunks.ts
+        - event: PunkOffered(indexed uint256,uint256,indexed address)
+          handler: handlePunkOffered
+        - event: PunkBidEntered(indexed uint256,uint256,indexed address)
+          handler: handlePunkBidEntered
+        - event: PunkBidWithdrawn(indexed uint256,uint256,indexed address)
+          handler: handlePunkBidWithdrawn
+        - event: PunkBought(indexed uint256,uint256,indexed address,indexed address)
+          handler: handlePunkBought
+        - event: PunkNoLongerForSale(indexed uint256)
+          handler: handlePunkNoLongerForSale
+      file: ./src/crypto-punks.ts
 
   - kind: ethereum
-    name: Seaport1.6
+    name: CryptoPunksV1Token
     network: mainnet
     source:
-      abi: Seaport1.6
-      address: "0x0000000000000068f116a894984e2db1123eb395"
-      startBlock: 13817852 # Mainnet
+      abi: CryptoPunksV1Token
+      address: "0x282bdd42f4eb70e7a9d9f40c8fea0825b7f68c5d"
+      # startBlock: 14022431 # Mainnet
+      startBlock: 22331156 # Mainnet
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -59,37 +61,60 @@ dataSources:
         - Event
         - State
       abis:
-        - name: Seaport1.6
-          file: ./abis/Seaport1.6.json
-      eventHandlers:
-        - event: OrderFulfilled(bytes32,indexed address,indexed address,address,(uint8,address,uint256,uint256)[],(uint8,address,uint256,uint256,address)[])
-          handler: handleOrderFulfilled
-      file: ./src/crypto-phunks.ts
-
-  - kind: ethereum
-    name: CryptoPhunksToken
-    network: mainnet
-    source:
-      abi: CryptoPhunksToken
-      address: "0xf07468ead8cf26c752c676e43c814fee9c8cf402"
-      startBlock: 12674389 # Mainnet
-    mapping:
-      kind: ethereum/events
-      apiVersion: 0.0.7
-      language: wasm/assemblyscript
-      entities:
-        - Account
-        - Punk
-        - Listing
-        - Bid
-        - Event
-        - State
-      abis:
-        - name: CryptoPhunksToken
-          file: ./abis/CryptoPhunksToken.json
+        - name: CryptoPunksV1Token
+          file: ./abis/CryptoPunksV1Token.json
         - name: AggregatorV3Interface
           file: ./abis/AggregatorV3Interface.json
       eventHandlers:
         - event: Transfer(indexed address,indexed address,indexed uint256)
           handler: handleTransfer
-      file: ./src/crypto-phunks.ts      
+      file: ./src/crypto-punks.ts      
+
+
+  - kind: ethereum/contract
+    name: BlurBiddingERC20
+    network: mainnet
+    source:
+      address: "0x0000000000a39bb272e79075ade125fd351887ac"
+      abi: BlurBiddingERC20
+      startBlock: 22331156
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - BlurExecutionContext
+      abis:
+        - name: BlurBiddingERC20
+          file: ./abis/BlurBiddingERC20.json
+      eventHandlers:
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleExecution721Packed
+      file: ./src/blur.ts
+
+  - kind: ethereum/contract
+    name: BlurExchange
+    network: mainnet
+    source:
+      address: "0xb2ecfe4e4d61f8790bbb9de2d1259b9e2410cea5" # adresse du BlurExchange v2
+      abi: BlurExchange
+      startBlock: 22331156 # exemple: bloc du premier gros volume Blur (à ajuster si besoin)
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Sale
+      abis:
+        - name: BlurExchange
+          file: ./abis/BlurExchange.json
+        - name: AggregatorV3Interface
+          file: ./abis/AggregatorV3Interface.json          
+      eventHandlers:
+        - event: Execution721Packed(bytes32,uint256,uint256)
+          handler: handleExecution721Packed
+        #- event: Execution721MakerFeePacked(bytes32,uint256,uint256,uint256)
+        #  handler: handleExecution721MakerFeePacked
+        #- event: Execution721TakerFeePacked(bytes32,uint256,uint256,uint256)
+        #  handler: handleExecution721TakerFeePacked          
+      file: ./src/blur.ts

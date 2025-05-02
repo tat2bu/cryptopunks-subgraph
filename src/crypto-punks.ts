@@ -3,29 +3,30 @@
  * @description Handles events from the CryptoPunksMarket contract and updates the subgraph accordingly.
  */
 
-import { BigInt, log, store } from '@graphprotocol/graph-ts';
+import { BigInt, Bytes, log, store } from '@graphprotocol/graph-ts';
 
-import { Account, Bid, Event, Listing, Punk, Transfer } from '../generated/schema';
-
-import {
-  PhunkOffered as PhunkOfferedEvent,
-  PhunkBidEntered as PhunkBidEntered,
-  PhunkBidWithdrawn as PhunkBidWithdrawnEvent,
-  PhunkBought as PhunkBoughtEvent,
-  PhunkNoLongerForSale as PunkNoLongerForSaleEvent,
-} from '../generated/CryptoPhunks/CryptoPhunks';
+import { Account, Bid, BlurExecutionContext, Event, Listing, Punk, Transfer } from '../generated/schema';
 
 import {
-  OrderFulfilled
-} from '../generated/Seaport1.6/Seaport1_6'
+  PunkOffered as PunkOfferedEvent,
+  PunkBidEntered as PunkBidEntered,
+  PunkBidWithdrawn as PunkBidWithdrawnEvent,
+  PunkBought as PunkBoughtEvent,
+  PunkNoLongerForSale as PunkNoLongerForSaleEvent,
+} from '../generated/CryptoPunksV1/CryptoPunksV1';
 
 import {
-  Transfer as PhunkTransfer
-} from '../generated/CryptoPhunks/CryptoPhunksToken';
+  Transfer as PunkTransfer
+} from '../generated/CryptoPunksV1Token/CryptoPunksV1Token';
+import { Transfer as BlurBiddingTransfer } from "../generated/BlurBiddingERC20/BlurBiddingERC20"
 
 import { getFloorFromActiveListings, getGlobalId, getOrCreateAccount, getOrCreatePunk, getOrCreateState, loadPrevBidEvent, loadPrevSaleEvent, setPunkNoLongerForSale, updateOwnership } from './utils/helpers';
 import { BIGINT_ONE, BIGINT_ZERO, ZERO_ADDRESS, washTrades } from './utils/constants';
 import { USDValue } from './utils/conversions';
+
+const TARGET_TOKEN = Bytes.fromHexString("0x282bdd42f4eb70e7a9d9f40c8fea0825b7f68c5d")!;
+const NATIVE_PLATFORM = 'punkv1';
+
 
 /**
  * Handles the Assign event.
@@ -74,7 +75,7 @@ let punkTransferTokenId: string;
  * Handles the PunkTransfer event.
  * @param event - The PunkTransferEvent object.
  */
-export function handleTransfer(event: PhunkTransfer): void {
+export function handleTransfer(event: PunkTransfer): void {
 
   let to = event.params.to.toHexString();
   let from = event.params.from.toHexString();
@@ -110,7 +111,7 @@ export function handleTransfer(event: PhunkTransfer): void {
   // Events
   let evntId = getGlobalId(event);
   let evnt = new Event(evntId);
-
+  evnt.platform = NATIVE_PLATFORM;
   evnt.type = 'Transferred';
   evnt.tokenId = event.params.tokenId;
   evnt.fromAccount = fromAccount.id;
@@ -145,11 +146,46 @@ export function handleTransfer(event: PhunkTransfer): void {
     toAccount.id,
     fromAccount.id,
   );
+
+  prepareThirdPartySale(event);
 }
 
-export function handleOrderFulfilled(event: OrderFulfilled): void {
+export function prepareThirdPartySale(event: PunkTransfer):void {
+  const id = event.transaction.hash.toHex()
+  let ctx = BlurExecutionContext.load(id)
 
-  log.debug(`handleOrderFulfilled(): TXHash: {}`, [event.transaction.hash.toHexString()]);  
+  if (!ctx) {
+    ctx = new BlurExecutionContext(id)
+    ctx.tokenIds = []
+
+    ctx.collection = TARGET_TOKEN;
+    ctx.from = event.params.from;
+    ctx.to = event.params.to;
+    ctx.paymentAmount = null;
+    ctx.paymentToken = Bytes.fromHexString("0x0000000000000000000000000000000000000000")!;
+    ctx.isBid = false;
+    ctx.hasExecution = false;
+    ctx.timestamp = event.block.timestamp;
+  }
+
+  const tokenId = event.params.tokenId
+  const tokenList = ctx.tokenIds
+  tokenList.push(tokenId)
+  ctx.tokenIds = tokenList
+
+  ctx.save()  
+}
+
+export function handleERC20BlurTransfer(event: BlurBiddingTransfer) :void {
+    const txHash = event.transaction.hash.toHex()
+    let ctx = BlurExecutionContext.load(txHash)
+    if (ctx) {
+        ctx!.paymentAmount = event.params.value
+        ctx!.from = event.params.from
+        ctx!.paymentToken = event.address
+        ctx!.isBid = true
+        ctx!.save()
+    }
 }
 
 let punkBoughtTokenId: string;
@@ -157,8 +193,8 @@ let punkBoughtTokenId: string;
  * Handles the PunkBought event.
  * @param event - The PunkBoughtEvent object.
  */
-export function handlePhunkBought(event: PhunkBoughtEvent): void {
-  punkBoughtTokenId = event.params.phunkIndex.toString();
+export function handlePunkBought(event: PunkBoughtEvent): void {
+  punkBoughtTokenId = event.params.punkIndex.toString();
 
   let isWash = washTrades.includes(event.transaction.hash.toHexString());
 
@@ -199,7 +235,8 @@ export function handlePhunkBought(event: PhunkBoughtEvent): void {
   let evntId = getGlobalId(event);
   let evnt = new Event(evntId);
   evnt.type = 'Sale';
-  evnt.tokenId = event.params.phunkIndex;
+  evnt.platform = NATIVE_PLATFORM;
+  evnt.tokenId = event.params.punkIndex;
   evnt.fromAccount = fromAccount.id;
   evnt.toAccount = toAccount.id;
   value = isWash ? BIGINT_ZERO : value;
@@ -242,8 +279,8 @@ let punkOfferedTokenId: string;
  * Handles the PunkOffered event.
  * @param event - The PunkOfferedEvent object.
  */
-export function handlePhunkOffered(event: PhunkOfferedEvent): void {
-  punkOfferedTokenId = event.params.phunkIndex.toString();
+export function handlePunkOffered(event: PunkOfferedEvent): void {
+  punkOfferedTokenId = event.params.punkIndex.toString();
 
   let fromAccount = getOrCreateAccount(event.transaction.from.toHexString());
   let toAccount = getOrCreateAccount(event.params.toAddress.toHexString());
@@ -275,9 +312,9 @@ export function handlePhunkOffered(event: PhunkOfferedEvent): void {
   if (!listing.isPrivate) {
     let evntId = getGlobalId(event);
     let evnt = new Event(evntId);
-
+    evnt.platform = NATIVE_PLATFORM;
     evnt.type = 'Offered';
-    evnt.tokenId = event.params.phunkIndex;
+    evnt.tokenId = event.params.punkIndex;
 
     evnt.fromAccount = fromAccount.id;
     evnt.toAccount = toAccount.id;
@@ -319,8 +356,8 @@ let punkBidEnteredTokenId: string;
  * Handles the PunkBidEntered event.
  * @param event - The PunkBidEnteredEvent object.
  */
-export function handlePhunkBidEntered(event: PhunkBidEntered): void {
-  punkBidEnteredTokenId = event.params.phunkIndex.toString();
+export function handlePunkBidEntered(event: PunkBidEntered): void {
+  punkBidEnteredTokenId = event.params.punkIndex.toString();
 
   let fromAccount = getOrCreateAccount(event.params.fromAddress.toHexString());
 
@@ -344,9 +381,9 @@ export function handlePhunkBidEntered(event: PhunkBidEntered): void {
   // Events
   let evntId = getGlobalId(event);
   let evnt = new Event(evntId);
-
+  evnt.platform = NATIVE_PLATFORM;
   evnt.type = 'BidEntered';
-  evnt.tokenId = event.params.phunkIndex;
+  evnt.tokenId = event.params.punkIndex;
 
   evnt.fromAccount = fromAccount.id;
   evnt.toAccount = ZERO_ADDRESS;
@@ -383,8 +420,8 @@ let punkBidWithdrawnTokenId: string;
  * Handles the PunkBidWithdrawn event.
  * @param event - The PunkBidWithdrawnEvent object.
  */
-export function handlePhunkBidWithdrawn(event: PhunkBidWithdrawnEvent): void {
-  punkBidWithdrawnTokenId = event.params.phunkIndex.toString();
+export function handlePunkBidWithdrawn(event: PunkBidWithdrawnEvent): void {
+  punkBidWithdrawnTokenId = event.params.punkIndex.toString();
 
   let fromAccount = getOrCreateAccount(event.params.fromAddress.toHexString());
 
@@ -395,9 +432,9 @@ export function handlePhunkBidWithdrawn(event: PhunkBidWithdrawnEvent): void {
   // Events
   let evntId = getGlobalId(event);
   let evnt = new Event(evntId);
-
+  evnt.platform = NATIVE_PLATFORM;
   evnt.type = 'BidWithdrawn';
-  evnt.tokenId = event.params.phunkIndex;
+  evnt.tokenId = event.params.punkIndex;
 
   evnt.fromAccount = fromAccount.id;
   evnt.toAccount = ZERO_ADDRESS;
@@ -417,8 +454,8 @@ let punkNoLongerForSaleTokenId: string;
  * Handles the PunkNoLongerForSale event.
  * @param event - The PunkNoLongerForSaleEvent object.
  */
-export function handlePhunkNoLongerForSale(event: PunkNoLongerForSaleEvent): void {
-  punkNoLongerForSaleTokenId = event.params.phunkIndex.toString();
+export function handlePunkNoLongerForSale(event: PunkNoLongerForSaleEvent): void {
+  punkNoLongerForSaleTokenId = event.params.punkIndex.toString();
 
   setPunkNoLongerForSale(punkNoLongerForSaleTokenId);
 
@@ -435,9 +472,9 @@ export function handlePhunkNoLongerForSale(event: PunkNoLongerForSaleEvent): voi
     // Events
     let evntId = getGlobalId(event);
     let evnt = new Event(evntId);
-
+    evnt.platform = NATIVE_PLATFORM;
     evnt.type = 'OfferWithdrawn';
-    evnt.tokenId = event.params.phunkIndex;
+    evnt.tokenId = event.params.punkIndex;
 
     evnt.fromAccount = ZERO_ADDRESS;
     evnt.toAccount = ZERO_ADDRESS;
@@ -468,3 +505,5 @@ export function handlePhunkNoLongerForSale(event: PunkNoLongerForSaleEvent): voi
 
   state.save();
 }
+
+
