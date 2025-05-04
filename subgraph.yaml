@@ -8,8 +8,8 @@ dataSources:
     source:
       abi: CryptoPunksV1
       address: "0x759c6C1923910930C18ef490B3c3DbeFf24003cE"
-      # startBlock: 14066948 # Mainnet
-      startBlock: 22331156 # Mainnet
+      startBlock: 14066948 # Mainnet
+      # startBlock: 22331156 # Mainnet
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -48,7 +48,7 @@ dataSources:
       abi: CryptoPunksV1Token
       address: "0x282bdd42f4eb70e7a9d9f40c8fea0825b7f68c5d"
       # startBlock: 14022431 # Mainnet
-      startBlock: 22331156 # Mainnet
+      startBlock: 14066948 # Mainnet
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -77,7 +77,7 @@ dataSources:
     source:
       address: "0x0000000000a39bb272e79075ade125fd351887ac"
       abi: BlurBiddingERC20
-      startBlock: 22331156
+      startBlock: 14066948
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -89,7 +89,7 @@ dataSources:
           file: ./abis/BlurBiddingERC20.json
       eventHandlers:
         - event: Transfer(indexed address,indexed address,uint256)
-          handler: handleExecution721Packed
+          handler: handleTransfer
       file: ./src/blur.ts
 
   - kind: ethereum/contract
@@ -98,7 +98,7 @@ dataSources:
     source:
       address: "0xb2ecfe4e4d61f8790bbb9de2d1259b9e2410cea5" # adresse du BlurExchange v2
       abi: BlurExchange
-      startBlock: 22331156 # exemple: bloc du premier gros volume Blur (à ajuster si besoin)
+      startBlock: 14066948 # exemple: bloc du premier gros volume Blur (à ajuster si besoin)
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
