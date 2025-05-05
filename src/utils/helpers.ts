@@ -13,6 +13,10 @@ import { timestampToId } from './date-utils';
 import { BIGINT_ZERO, ZERO_ADDRESS } from './constants';
 import { BIGINT_ONE } from './constants';
 
+import {
+  PunkBought as PunkBoughtEvent,
+} from '../../generated/CryptoPunksV1/CryptoPunksV1';
+import { USDValue } from './conversions';
 /**
  * Generates a global ID for an event.
  * @param event - The ethereum event.
@@ -239,6 +243,40 @@ export function loadPrevBidEvent(topBid: string | null): Event | null {
 export function loadPrevSaleEvent(topSale: string | null): Event | null {
   if (topSale == null) return null;
   return Event.load(topSale as string) || null;
+}
+
+export function updateSaleState(evnt: Event): void {
+  // State
+  let state = getOrCreateState(evnt.blockTimestamp);
+  let topSale = state.topSale;
+  let prevSaleEvent = loadPrevSaleEvent(topSale);
+
+  let prevEventSaleValue: BigInt;
+  if (prevSaleEvent && prevSaleEvent.value && prevSaleEvent.value.gt(BIGINT_ZERO)) {
+    prevEventSaleValue = prevSaleEvent.value;
+    if (evnt.value.gt(prevEventSaleValue)) state.topSale = evnt.id;
+  } else {
+    state.topSale = evnt.id;
+  }
+
+  // Avoid direct array assignment to prevent referencing previous state arrays.
+  let tokenId = evnt.tokenId.toString();
+  let currentActiveListings = state.activeListings;
+  let newActiveListings: string[] = [];
+  for (let i = 0; i < currentActiveListings.length; i++) {
+    if (currentActiveListings[i] != tokenId) {
+      newActiveListings.push(currentActiveListings[i]);
+    }
+  }
+  state.activeListings = newActiveListings;
+
+
+  let newFloor = getFloorFromActiveListings(state);
+  state.floor = newFloor;
+  state.sales = state.sales.plus(BIGINT_ONE);
+  state.volume = state.volume.plus(evnt.value);
+  state.usd = USDValue(evnt.blockTimestamp, evnt.blockNumber);
+  state.save();
 }
 
 /**

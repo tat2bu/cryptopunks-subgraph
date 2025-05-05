@@ -20,7 +20,7 @@ import {
 } from '../generated/CryptoPunksV1Token/CryptoPunksV1Token';
 import { Transfer as BlurBiddingTransfer } from "../generated/BlurBiddingERC20/BlurBiddingERC20"
 
-import { getFloorFromActiveListings, getGlobalId, getOrCreateAccount, getOrCreatePunk, getOrCreateState, loadPrevBidEvent, loadPrevSaleEvent, setPunkNoLongerForSale, updateOwnership } from './utils/helpers';
+import { getFloorFromActiveListings, getGlobalId, getOrCreateAccount, getOrCreatePunk, getOrCreateState, loadPrevBidEvent, loadPrevSaleEvent, setPunkNoLongerForSale, updateOwnership, updateSaleState } from './utils/helpers';
 import { BIGINT_ONE, BIGINT_ZERO, ZERO_ADDRESS, washTrades } from './utils/constants';
 import { USDValue } from './utils/conversions';
 
@@ -246,32 +246,7 @@ export function handlePunkBought(event: PunkBoughtEvent): void {
   evnt.blockTimestamp = event.block.timestamp;
   evnt.transactionHash = event.transaction.hash;
   evnt.save();
-
-  // State
-  let state = getOrCreateState(event.block.timestamp);
-  let topSale = state.topSale;
-  let prevSaleEvent = loadPrevSaleEvent(topSale);
-
-  let prevEventSaleValue: BigInt;
-  if (prevSaleEvent && prevSaleEvent.value && prevSaleEvent.value.gt(BIGINT_ZERO)) {
-    prevEventSaleValue = prevSaleEvent.value;
-    if (value.gt(prevEventSaleValue)) state.topSale = evntId;
-  } else {
-    state.topSale = evntId;
-  }
-
-  let newActiveListings = state.activeListings;
-  if (newActiveListings.indexOf(punkBoughtTokenId) > -1) {
-    newActiveListings = newActiveListings.filter((id) => id != punkBoughtTokenId);
-  }
-  state.activeListings = newActiveListings;
-
-  let newFloor = getFloorFromActiveListings(state);
-  state.floor = newFloor;
-  state.sales = state.sales.plus(BIGINT_ONE);
-  state.volume = state.volume.plus(value);
-  state.usd = USDValue(event.block.timestamp, event.block.number);
-  state.save();
+  updateSaleState(evnt)
 }
 
 let punkOfferedTokenId: string;

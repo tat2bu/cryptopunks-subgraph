@@ -1,9 +1,9 @@
-type Account @entity {
+type Account @entity(immutable: false) {
   id: ID!
   punks: [Punk!]!
 }
 
-type Punk @entity {
+type Punk @entity(immutable: false) {
   id: ID!
   owner: Account!
   wrapped: Boolean!
@@ -11,7 +11,7 @@ type Punk @entity {
   listing: Listing @derivedFrom(field: "punk")
 }
 
-type Listing @entity {
+type Listing @entity(immutable: false) {
   id: ID!
   punk: Punk!
   value: BigInt! # uint256
@@ -25,7 +25,7 @@ type Listing @entity {
   transactionHash: Bytes!
 }
 
-type Bid @entity {
+type Bid @entity(immutable: false) {
   id: ID!
   punk: Punk!
   value: BigInt! # uint256
@@ -37,7 +37,7 @@ type Bid @entity {
   transactionHash: Bytes!
 }
 
-type Event @entity {
+type Event @entity(immutable: false) {
   id: ID!
   transactionHash: Bytes!
   type: String!
@@ -52,7 +52,7 @@ type Event @entity {
   # isFlagged: Boolean
 }
 
-type State @entity {
+type State @entity(immutable: false) {
   id: ID!
   timestamp: BigInt!
   floor: BigInt!
@@ -68,7 +68,7 @@ type State @entity {
   usd: BigInt
 }
 
-type Transfer @entity {
+type Transfer @entity(immutable: false) {
   id: ID! # <txHash>--<tokenId>
   from: String!
   to: String!
@@ -77,7 +77,7 @@ type Transfer @entity {
 }
 
 
-type Bundle @entity {
+type Bundle @entity(immutable: false) {
   id: ID!
   platform: String!
   offerer: Bytes!
@@ -91,14 +91,14 @@ type Bundle @entity {
   transaction: Bytes!
 }
 
-type FeeRecipient @entity {
+type FeeRecipient @entity(immutable: false) {
   id: ID!
   recipient: Bytes!
   amount: BigInt!
   event: Event!
 }
 
-type BlurExecutionContext @entity {
+type BlurExecutionContext @entity(immutable: false) {
   id: ID! # tx hash
   tokenIds: [BigInt!]!
   collection: Bytes!

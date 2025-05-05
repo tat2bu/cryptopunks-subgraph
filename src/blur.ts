@@ -5,7 +5,7 @@ import {
     Execution721TakerFeePacked,
 } from "../generated/BlurExchange/BlurExchange"
 import { BlurExecutionContext, Event } from "../generated/schema";
-import { getGlobalId } from "./utils/helpers";
+import { getGlobalId, updateSaleState } from "./utils/helpers";
 import { USDValue } from "./utils/conversions";
 
 import {
@@ -96,6 +96,8 @@ export function handleExecution721Packed(event: Execution721Packed): void {
     evnt.transactionHash = event.transaction.hash;
     debugEvent(evnt);
     evnt.save();
+
+    updateSaleState(evnt)
 }
 
 export function handleTransfer(event: BlurTransfer): void {
