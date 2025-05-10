@@ -8,7 +8,7 @@ dataSources:
     source:
       abi: CryptoPunksV1
       address: "0x759c6C1923910930C18ef490B3c3DbeFf24003cE"
-      startBlock: 14066948 # Mainnet
+      startBlock: 14066948 # Mainnet punk v1 market creation
       # startBlock: 22331156 # Mainnet
     mapping:
       kind: ethereum/events
@@ -52,7 +52,7 @@ dataSources:
       # 0x759c6C1923910930C18ef490B3c3DbeFf24003cE # punk market
       # startBlock: 14022431 # Mainnet
       # startBlock: 3842489 # Mainnet
-      startBlock: 3842489 # Mainnet
+      startBlock: 3842489 # Mainnet v1 punk token creation
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -86,7 +86,7 @@ dataSources:
       # 0x759c6C1923910930C18ef490B3c3DbeFf24003cE # punk market
       # startBlock: 14022431 # Mainnet
       # startBlock: 3842489 # Mainnet
-      startBlock: 14022431 # Mainnet
+      startBlock: 14022431 # Mainnet wrapper creation
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -117,7 +117,7 @@ dataSources:
       address: "0x0000000000a39bb272e79075ade125fd351887ac"
       abi: BlurBiddingERC20
       #startBlock: 14066948
-      startBlock: 16108399
+      startBlock: 16108399 # blur bidding contract creation
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -139,7 +139,7 @@ dataSources:
       address: "0xb2ecfe4e4d61f8790bbb9de2d1259b9e2410cea5" # adresse du BlurExchange v2
       abi: BlurExchange
       #startBlock: 14066948
-      startBlock: 17603892
+      startBlock: 17603892 # blur exchange v2 contract creation
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -165,7 +165,7 @@ dataSources:
     source:
       address: "0x0000000000000068f116a894984e2db1123eb395"
       abi: Seaport
-      startBlock: 19442152
+      startBlock: 19442152 # seaport 1.6 contract creation
       #startBlock: 22331156
     mapping:
       kind: ethereum/events
