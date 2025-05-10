@@ -26,6 +26,7 @@ import { USDValue } from './utils/conversions';
 
 const TARGET_TOKEN = Bytes.fromHexString("0x282bdd42f4eb70e7a9d9f40c8fea0825b7f68c5d")!;
 const NATIVE_PLATFORM = 'punkv1';
+const WRAPPER_ADDRESS = '0x282bdd42f4eb70e7a9d9f40c8fea0825b7f68c5d'
 
 
 /**
@@ -95,6 +96,12 @@ export function handleTransfer(event: PunkTransfer): void {
   let punk = getOrCreatePunk(punkTransferTokenId);
 
   // Check if punk is wrapped
+  let isWrapped = false;
+  let isUnwrapped = false;
+  if (to == WRAPPER_ADDRESS) isWrapped = true;
+  if (from == WRAPPER_ADDRESS) isUnwrapped = true;
+  punk.wrapped = isWrapped;
+
   punk.save();
 
   let newOwnerIsBidder = false;

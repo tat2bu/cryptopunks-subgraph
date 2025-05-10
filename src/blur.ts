@@ -43,13 +43,6 @@ export function decodePrice(value: BigInt, isBid: boolean): BigInt {
 
 export function handleExecution721Packed(event: Execution721Packed): void {
 
-    const id = event.transaction.hash.toHex() + "-" + event.logIndex.toString();
-
-    const context = BlurExecutionContext.load(event.transaction.hash.toHex());
-    if (!context) {
-        log.warning("Execution721Packed: context not found for tx {}", [id]);
-        return;
-    }
     
     const packedTrader = event.params.tokenIdListingIndexTrader;
     const packedCollectionPrice = event.params.collectionPriceSide;
@@ -69,6 +62,13 @@ export function handleExecution721Packed(event: Execution721Packed): void {
         return;
     }
     
+    const id = event.transaction.hash.toHex() + "-" + event.logIndex.toString();
+
+    const context = BlurExecutionContext.load(event.transaction.hash.toHex());
+    if (!context) {
+        log.warning("Execution721Packed: context not found for tx {}", [id]);
+        return;
+    }
     
     const isBid = context.from == event.transaction.from
 
