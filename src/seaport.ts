@@ -2,7 +2,7 @@ import { OrderFulfilled } from "../generated/Seaport/Seaport"
 import { Bundle, FeeRecipient, Event } from "../generated/schema"
 import { BigInt, Bytes } from "@graphprotocol/graph-ts"
 import { USDValue } from "./utils/conversions";
-import { getGlobalId } from "./utils/helpers";
+import { getGlobalId, updateSaleState } from "./utils/helpers";
 
 const TARGET_TOKEN = Bytes.fromHexString("0xb7f7f6c52f2e2fdb1963eab30438024864c313f6")!;
 
@@ -88,6 +88,7 @@ export function handleOrderFulfilled(event: OrderFulfilled): void {
     evnt.blockTimestamp = event.block.timestamp;
     evnt.transactionHash = event.transaction.hash;
     evnt.save();   
+    updateSaleState(evnt)
   } else {
     let bundle = new Bundle(event.transaction.hash.toHex());
     bundle.platform = 'opensea';
