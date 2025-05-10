@@ -8,7 +8,8 @@ dataSources:
     source:
       abi: CryptoPunksMarket
       address: "0xb47e3cd837ddf8e4c57f05d70ab865de6e193bbb"
-      startBlock: 3914495 # Mainnet
+      # startBlock: 3914495 # Mainnet punk marketplace creation
+      startBlock: 21973948 # test punk sale
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -43,3 +44,124 @@ dataSources:
         - event: PunkNoLongerForSale(indexed uint256)
           handler: handlePunkNoLongerForSale
       file: ./src/crypto-punks-market.ts
+
+
+  - kind: ethereum
+    name: WrappedPunks
+    network: mainnet
+    source:
+      abi: WrappedPunks
+      address: "0xb7f7f6c52f2e2fdb1963eab30438024864c313f6"
+      # 0x282bdd42f4eb70e7a9d9f40c8fea0825b7f68c5d # wrapper
+      # 0x6ba6f2207e343923ba692e5cae646fb0f566db8d # v1 original
+      # 0x759c6C1923910930C18ef490B3c3DbeFf24003cE # punk market
+      # startBlock: 14022431 # Mainnet
+      # startBlock: 3842489 # Mainnet
+      # startBlock: 14022431 # Mainnet wrapper creation
+      startBlock: 21973948 # test punk sale
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Account
+        - Punk
+        - Listing
+        - BlurExecutionContext
+        - Bid
+        - Event
+        - State
+      abis:
+        - name: WrappedPunks
+          file: ./abis/WrappedPunks.json
+        - name: AggregatorV3Interface
+          file: ./abis/AggregatorV3Interface.json
+      eventHandlers:
+        - event: Transfer(indexed address,indexed address,indexed uint256)
+          handler: handleWrappedTransfer
+      file: ./src/crypto-punks-market.ts      
+
+  - kind: ethereum/contract
+    name: BlurBiddingERC20
+    network: mainnet
+    source:
+      address: "0x0000000000a39bb272e79075ade125fd351887ac"
+      abi: BlurBiddingERC20
+      # startBlock: 14066948
+      # startBlock: 16108399
+      # startBlock: 19442152 # seaport 1.6 creation
+      # startBlock: 22434014 # test blur phunk
+      # startBlock: 12674389 # cryptophunks contract creation
+      startBlock: 21973948 # test punk sale
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - BlurExecutionContext
+      abis:
+        - name: BlurBiddingERC20
+          file: ./abis/BlurBiddingERC20.json
+      eventHandlers:
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer
+      file: ./src/blur.ts
+
+  - kind: ethereum/contract
+    name: BlurExchange
+    network: mainnet
+    source:
+      address: "0xb2ecfe4e4d61f8790bbb9de2d1259b9e2410cea5" # adresse du BlurExchange v2
+      abi: BlurExchange
+      # startBlock: 14066948
+      # startBlock: 17603892
+      # startBlock: 19442152 # seaport 1.6 creation
+      # startBlock: 22434014 # test blur phunk
+      # startBlock: 12674389 # cryptophunks contract creation
+      startBlock: 21973948 # test punk sale
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      abis:
+        - name: BlurExchange
+          file: ./abis/BlurExchange.json
+        - name: AggregatorV3Interface
+          file: ./abis/AggregatorV3Interface.json          
+      eventHandlers:
+        - event: Execution721Packed(bytes32,uint256,uint256)
+          handler: handleExecution721Packed
+        #- event: Execution721MakerFeePacked(bytes32,uint256,uint256,uint256)
+        #  handler: handleExecution721MakerFeePacked
+        #- event: Execution721TakerFeePacked(bytes32,uint256,uint256,uint256)
+        #  handler: handleExecution721TakerFeePacked  
+      entities:
+        - Event        
+      file: ./src/blur.ts
+  - kind: ethereum/contract
+    name: Seaport # 1.6
+    network: mainnet
+    source:
+      address: "0x0000000000000068f116a894984e2db1123eb395"
+      abi: Seaport
+      # startBlock: 19442152
+      # startBlock: 22331156
+      # startBlock: 19442152 # seaport 1.6 creation
+      # startBlock: 22434014 # test blur phunk
+      # startBlock: 12674389 # cryptophunks contract creation
+      startBlock: 21973948 # test punk sale
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Event
+      abis:
+        - name: Seaport
+          file: ./abis/Seaport.json
+        - name: AggregatorV3Interface
+          file: ./abis/AggregatorV3Interface.json          
+      eventHandlers:
+        - event: OrderFulfilled(bytes32,indexed address,indexed address,address,(uint8,address,uint256,uint256)[],(uint8,address,uint256,uint256,address)[])
+          handler: handleOrderFulfilled
+      file: ./src/seaport.ts

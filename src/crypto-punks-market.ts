@@ -3,9 +3,12 @@
  * @description Handles events from the CryptoPunksMarket contract and updates the subgraph accordingly.
  */
 
-import { BigInt, store } from '@graphprotocol/graph-ts';
+import { BigInt, Bytes, store } from '@graphprotocol/graph-ts';
 
-import { Account, Bid, Event, Listing, Punk, Transfer } from '../generated/schema';
+import { Account, Bid, BlurExecutionContext, Event, Listing, Punk, Transfer } from '../generated/schema';
+
+import { Transfer as BlurBiddingTransfer } from "../generated/BlurBiddingERC20/BlurBiddingERC20"
+import { Transfer as WrappedTransfer } from "../generated/WrappedPunks/WrappedPunks"
 
 import {
   Assign as AssignEvent,
@@ -22,6 +25,9 @@ import { getFloorFromActiveListings, getGlobalId, getOrCreateAccount, getOrCreat
 import { BIGINT_ONE, BIGINT_ZERO, WRAPPER_ADDRESS, ZERO_ADDRESS, washTrades } from './utils/constants';
 import { USDValue } from './utils/conversions';
 
+const TARGET_TOKEN = Bytes.fromHexString("0xb7f7f6c52f2e2fdb1963eab30438024864c313f6")!;
+const NATIVE_PLATFORM = 'larvalabs';
+
 /**
  * Handles the Assign event.
  * @param event - The AssignEvent object.
@@ -36,6 +42,7 @@ export function handleAssign(event: AssignEvent): void {
   let evnt = new Event(evntId);
 
   evnt.type = 'Claimed';
+  evnt.platform = NATIVE_PLATFORM
   evnt.tokenId = event.params.punkIndex;
 
   evnt.fromAccount = ZERO_ADDRESS;
@@ -116,6 +123,7 @@ export function handlePunkTransfer(event: PunkTransferEvent): void {
 
   let eventType = isWrapped ? 'Wrapped' : isUnwrapped ? 'Unwrapped' : 'Transferred';
   evnt.type = eventType;
+  evnt.platform = NATIVE_PLATFORM
   evnt.tokenId = event.params.punkIndex;
   evnt.fromAccount = fromAccount.id;
   evnt.toAccount = toAccount.id;
@@ -197,6 +205,7 @@ export function handlePunkBought(event: PunkBoughtEvent): void {
   let evnt = new Event(evntId);
   evnt.type = 'Sale';
   evnt.tokenId = event.params.punkIndex;
+  evnt.platform = NATIVE_PLATFORM
   evnt.fromAccount = fromAccount.id;
   evnt.toAccount = toAccount.id;
   evnt.value = value;
@@ -273,7 +282,7 @@ export function handlePunkOffered(event: PunkOfferedEvent): void {
 
   evnt.type = 'Offered';
   evnt.tokenId = event.params.punkIndex;
-
+  evnt.platform = NATIVE_PLATFORM
   evnt.fromAccount = fromAccount.id;
   evnt.toAccount = toAccount.id;
   evnt.value = event.params.minValue;
@@ -341,7 +350,7 @@ export function handlePunkBidEntered(event: PunkBidEnteredEvent): void {
 
   evnt.type = 'BidEntered';
   evnt.tokenId = event.params.punkIndex;
-
+  evnt.platform = NATIVE_PLATFORM
   evnt.fromAccount = fromAccount.id;
   evnt.toAccount = ZERO_ADDRESS;
   evnt.value = event.params.value;
@@ -389,7 +398,7 @@ export function handlePunkBidWithdrawn(event: PunkBidWithdrawnEvent): void {
   // Events
   let evntId = getGlobalId(event);
   let evnt = new Event(evntId);
-
+  evnt.platform = NATIVE_PLATFORM
   evnt.type = 'BidWithdrawn';
   evnt.tokenId = event.params.punkIndex;
 
@@ -429,7 +438,7 @@ export function handlePunkNoLongerForSale(event: PunkNoLongerForSaleEvent): void
     // Events
     let evntId = getGlobalId(event);
     let evnt = new Event(evntId);
-
+    evnt.platform = NATIVE_PLATFORM
     evnt.type = 'OfferWithdrawn';
     evnt.tokenId = event.params.punkIndex;
 
@@ -462,3 +471,51 @@ export function handlePunkNoLongerForSale(event: PunkNoLongerForSaleEvent): void
 
   state.save();
 }
+
+
+/**
+ * Handles the PunkTransfer event.
+ * @param event - The PunkTransferEvent object.
+ */
+export function handleWrappedTransfer(event: WrappedTransfer): void {
+  prepareThirdPartySale(event);
+}
+
+export function prepareThirdPartySale(event: WrappedTransfer):void {
+  const id = event.transaction.hash.toHex()
+  let ctx = BlurExecutionContext.load(id)
+
+  if (!ctx) {
+    ctx = new BlurExecutionContext(id)
+    ctx.tokenIds = []
+
+    ctx.collection = TARGET_TOKEN;
+    ctx.from = event.params.from;
+    ctx.to = event.params.to;
+    ctx.paymentAmount = null;
+    ctx.paymentToken = Bytes.fromHexString("0x0000000000000000000000000000000000000000")!;
+    ctx.isBid = false;
+    ctx.hasExecution = false;
+    ctx.timestamp = event.block.timestamp;
+  }
+
+  const tokenId = event.params.tokenId
+  const tokenList = ctx.tokenIds
+  tokenList.push(tokenId)
+  ctx.tokenIds = tokenList
+
+  ctx.save()  
+}
+
+export function handleERC20BlurTransfer(event: BlurBiddingTransfer) :void {
+    const txHash = event.transaction.hash.toHex()
+    let ctx = BlurExecutionContext.load(txHash)
+    if (ctx) {
+        ctx!.paymentAmount = event.params.value
+        ctx!.from = event.params.from
+        ctx!.paymentToken = event.address
+        ctx!.isBid = true
+        ctx!.save()
+    }
+}
+
