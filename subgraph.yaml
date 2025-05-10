@@ -8,7 +8,10 @@ dataSources:
     source:
       abi: CryptoPhunks
       address: "0xd6c037be7fa60587e174db7a6710f7635d2971e7"
-      startBlock: 13817852 # Mainnet
+      # startBlock: 13817852 # Mainnet creation
+      # startBlock: 19442152 # seaport 1.6 creation
+      # startBlock: 22434014 # test blur phunk
+      startBlock: 12674389 # cryptophunks contract creation
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -46,7 +49,10 @@ dataSources:
     source:
       abi: CryptoPhunksToken
       address: "0xf07468ead8cf26c752c676e43c814fee9c8cf402"
-      startBlock: 12674389 # Mainnet
+      # startBlock: 12674389 # Mainnet creation
+      # startBlock: 19442152 # seaport 1.6 creation
+      # startBlock: 22434014 # test blur phunk
+      startBlock: 12674389 # cryptophunks contract creation
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -67,3 +73,86 @@ dataSources:
         - event: Transfer(indexed address,indexed address,indexed uint256)
           handler: handleTransfer
       file: ./src/crypto-phunks.ts      
+
+
+  - kind: ethereum/contract
+    name: BlurBiddingERC20
+    network: mainnet
+    source:
+      address: "0x0000000000a39bb272e79075ade125fd351887ac"
+      abi: BlurBiddingERC20
+      # startBlock: 14066948
+      # startBlock: 16108399
+      # startBlock: 19442152 # seaport 1.6 creation
+      # startBlock: 22434014 # test blur phunk
+      startBlock: 12674389 # cryptophunks contract creation
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - BlurExecutionContext
+      abis:
+        - name: BlurBiddingERC20
+          file: ./abis/BlurBiddingERC20.json
+      eventHandlers:
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer
+      file: ./src/blur.ts
+
+  - kind: ethereum/contract
+    name: BlurExchange
+    network: mainnet
+    source:
+      address: "0xb2ecfe4e4d61f8790bbb9de2d1259b9e2410cea5" # adresse du BlurExchange v2
+      abi: BlurExchange
+      # startBlock: 14066948
+      # startBlock: 17603892
+      # startBlock: 19442152 # seaport 1.6 creation
+      # startBlock: 22434014 # test blur phunk
+      startBlock: 12674389 # cryptophunks contract creation
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      abis:
+        - name: BlurExchange
+          file: ./abis/BlurExchange.json
+        - name: AggregatorV3Interface
+          file: ./abis/AggregatorV3Interface.json          
+      eventHandlers:
+        - event: Execution721Packed(bytes32,uint256,uint256)
+          handler: handleExecution721Packed
+        #- event: Execution721MakerFeePacked(bytes32,uint256,uint256,uint256)
+        #  handler: handleExecution721MakerFeePacked
+        #- event: Execution721TakerFeePacked(bytes32,uint256,uint256,uint256)
+        #  handler: handleExecution721TakerFeePacked  
+      entities:
+        - Event        
+      file: ./src/blur.ts
+  - kind: ethereum/contract
+    name: Seaport # 1.6
+    network: mainnet
+    source:
+      address: "0x0000000000000068f116a894984e2db1123eb395"
+      abi: Seaport
+      # startBlock: 19442152
+      # startBlock: 22331156
+      # startBlock: 19442152 # seaport 1.6 creation
+      # startBlock: 22434014 # test blur phunk
+      startBlock: 12674389 # cryptophunks contract creation
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Event
+      abis:
+        - name: Seaport
+          file: ./abis/Seaport.json
+        - name: AggregatorV3Interface
+          file: ./abis/AggregatorV3Interface.json          
+      eventHandlers:
+        - event: OrderFulfilled(bytes32,indexed address,indexed address,address,(uint8,address,uint256,uint256)[],(uint8,address,uint256,uint256,address)[])
+          handler: handleOrderFulfilled
+      file: ./src/seaport.ts
