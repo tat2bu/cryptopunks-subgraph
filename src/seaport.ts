@@ -7,6 +7,7 @@ import { getGlobalId, updateSaleState } from "./utils/helpers";
 const TARGET_TOKEN = Bytes.fromHexString("0x282bdd42f4eb70e7a9d9f40c8fea0825b7f68c5d") as Bytes;
 
 export function handleOrderFulfilled(event: OrderFulfilled): void {
+  
   let offerer = event.params.offerer;
   let recipient = event.params.recipient;
   let offer = event.params.offer;
@@ -19,14 +20,29 @@ export function handleOrderFulfilled(event: OrderFulfilled): void {
   let matchFound = false;
   let isBid = offer.length > 0 && (offer[0].itemType == 0 || offer[0].itemType == 1);
 
-  for (let i = 0; i < offer.length; i++) {
-    let item = offer[i];
-    if (item.itemType == 2 || item.itemType == 3) {
-      if (item.token.equals(TARGET_TOKEN)) {
-        matchFound = true;
+  
+  if (isBid) {
+    for (let i = 0; i < consideration.length; i++) {
+      let item = consideration[i];
+      if (item.itemType == 2 || item.itemType == 3) {
+        if (item.token.equals(TARGET_TOKEN)) {
+          matchFound = true;
+        }
+        nfts.push(item.token);
+        nftIds.push(item.identifier);
       }
-      nfts.push(item.token);
-      nftIds.push(item.identifier);
+    }
+  } else {
+    for (let i = 0; i < offer.length; i++) {
+      let item = offer[i];
+      
+      if (item.itemType == 2 || item.itemType == 3) {
+        if (item.token.equals(TARGET_TOKEN)) {
+          matchFound = true;
+        }
+        nfts.push(item.token);
+        nftIds.push(item.identifier);
+      }
     }
   }
 
@@ -50,6 +66,14 @@ export function handleOrderFulfilled(event: OrderFulfilled): void {
   const buyer = isBid ? offerer : recipient;
   const seller = isBid ? recipient : offerer;
   
+  /*
+  log.info("handleOrderFulfilled triggered: seller = {}, buyer = {}, isBid = {} ", [
+    seller.toHexString(),
+    buyer.toHexString(),
+    isBid.toString()
+  ]);
+  */
+
   if (nfts.length == 1) {
     /*
     let sale = new Sale(event.transaction.hash.toHex() + "-" + event.logIndex.toString());
@@ -81,14 +105,13 @@ export function handleOrderFulfilled(event: OrderFulfilled): void {
     evnt.fromAccount = seller.toHexString();
     evnt.toAccount = buyer.toHexString();
     //return;
-
+  
     evnt.value = paymentAmount;
     evnt.usd = USDValue(event.block.timestamp, event.block.number);
     evnt.blockNumber = event.block.number;
     evnt.blockTimestamp = event.block.timestamp;
     evnt.transactionHash = event.transaction.hash;
     evnt.save();   
-    updateSaleState(evnt);
   } else {
     let bundle = new Bundle(event.transaction.hash.toHex());
     bundle.platform = 'opensea';
