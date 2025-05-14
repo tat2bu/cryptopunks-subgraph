@@ -72,6 +72,8 @@ dataSources:
       eventHandlers:
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleTransfer
+        - event: Assign(indexed address,uint256)
+          handler: handleAssign
       file: ./src/crypto-punks.ts      
 
 

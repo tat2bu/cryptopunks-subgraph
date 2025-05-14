@@ -3,7 +3,7 @@
  * @description Handles events from the CryptoPunksMarket contract and updates the subgraph accordingly.
  */
 
-import { BigInt, Bytes, log, store } from '@graphprotocol/graph-ts';
+import { BigInt, Bytes, ethereum, log, store } from '@graphprotocol/graph-ts';
 
 import { Account, Bid, BlurExecutionContext, Event, Listing, Punk, Transfer } from '../generated/schema';
 
@@ -16,7 +16,8 @@ import {
 } from '../generated/CryptoPunksV1/CryptoPunksV1';
 
 import {
-  Transfer as PunkTransfer
+  Assign,
+  PunkTransfer
 } from '../generated/CryptoPunksV1Token/CryptoPunksV1Token';
 import { Transfer as BlurBiddingTransfer } from "../generated/BlurBiddingERC20/BlurBiddingERC20"
 
@@ -72,6 +73,16 @@ export function handleAssign(event: AssignEvent): void {
 let punkTransferTokenId: string;
 
 
+export function handleAssign(event: Assign): void {
+
+  let to = event.params.to.toHexString();
+  let from = ZERO_ADDRESS;
+
+  const tx = event.transaction.hash
+
+  handleTransferInner(event, tx, to, from, event.params.punkIndex);
+}
+
 /**
  * Handles the PunkTransfer event.
  * @param event - The PunkTransferEvent object.
@@ -81,13 +92,26 @@ export function handleTransfer(event: PunkTransfer): void {
   let to = event.params.to.toHexString();
   let from = event.params.from.toHexString();
 
-  let transfer = new Transfer(event.transaction.hash.toHexString());
+  const tx = event.transaction.hash
+
+  handleTransferInner(event, tx, to, from, event.params.punkIndex);
+  prepareThirdPartySale(event);  
+}
+
+export function handleTransferInner(
+  event:ethereum.Event,
+  tx:Bytes, 
+  to:string, 
+  from:string, 
+  tokenId:BigInt):void {
+
+  let transfer = new Transfer(tx.toHexString());
   transfer.to = to;
   transfer.from = from;
-  transfer.transactionHash = event.transaction.hash;
+  transfer.transactionHash = tx;
   transfer.save();
 
-  punkTransferTokenId = event.params.tokenId.toString();
+  punkTransferTokenId = tokenId.toString();
 
   let fromAccount: Account = getOrCreateAccount(from);
   let toAccount: Account = getOrCreateAccount(to);
@@ -120,7 +144,7 @@ export function handleTransfer(event: PunkTransfer): void {
   let evnt = new Event(evntId);
   evnt.platform = NATIVE_PLATFORM;
   evnt.type = 'Transferred';
-  evnt.tokenId = event.params.tokenId;
+  evnt.tokenId = tokenId;
   evnt.fromAccount = fromAccount.id;
   evnt.toAccount = toAccount.id;
   evnt.value = BIGINT_ZERO;
@@ -154,7 +178,6 @@ export function handleTransfer(event: PunkTransfer): void {
     fromAccount.id,
   );
 
-  prepareThirdPartySale(event);
 }
 
 export function prepareThirdPartySale(event: PunkTransfer):void {
@@ -175,7 +198,7 @@ export function prepareThirdPartySale(event: PunkTransfer):void {
     ctx.timestamp = event.block.timestamp;
   }
 
-  const tokenId = event.params.tokenId
+  const tokenId = event.params.punkIndex
   const tokenList = ctx.tokenIds
   tokenList.push(tokenId)
   ctx.tokenIds = tokenList
