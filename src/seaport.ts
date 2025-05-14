@@ -1,12 +1,13 @@
-import { OrderFulfilled } from "../generated/Seaport/Seaport"
+import { OrderFulfilled, OrderFulfilledConsiderationStruct, OrderFulfilledOfferStruct } from "../generated/Seaport/Seaport"
 import { Bundle, FeeRecipient, Event } from "../generated/schema"
-import { BigInt, Bytes } from "@graphprotocol/graph-ts"
+import { BigInt, Bytes, log } from "@graphprotocol/graph-ts"
 import { USDValue } from "./utils/conversions";
 import { getGlobalId } from "./utils/helpers";
 
 const TARGET_TOKEN = Bytes.fromHexString("0xf07468ead8cf26c752c676e43c814fee9c8cf402")!;
 
 export function handleOrderFulfilled(event: OrderFulfilled): void {
+  
   let offerer = event.params.offerer;
   let recipient = event.params.recipient;
   let offer = event.params.offer;
@@ -19,14 +20,29 @@ export function handleOrderFulfilled(event: OrderFulfilled): void {
   let matchFound = false;
   let isBid = offer.length > 0 && (offer[0].itemType == 0 || offer[0].itemType == 1);
 
-  for (let i = 0; i < offer.length; i++) {
-    let item = offer[i];
-    if (item.itemType == 2 || item.itemType == 3) {
-      if (item.token.equals(TARGET_TOKEN)) {
-        matchFound = true;
+  
+  if (isBid) {
+    for (let i = 0; i < consideration.length; i++) {
+      let item = consideration[i];
+      if (item.itemType == 2 || item.itemType == 3) {
+        if (item.token.equals(TARGET_TOKEN)) {
+          matchFound = true;
+        }
+        nfts.push(item.token);
+        nftIds.push(item.identifier);
       }
-      nfts.push(item.token);
-      nftIds.push(item.identifier);
+    }
+  } else {
+    for (let i = 0; i < offer.length; i++) {
+      let item = offer[i];
+      
+      if (item.itemType == 2 || item.itemType == 3) {
+        if (item.token.equals(TARGET_TOKEN)) {
+          matchFound = true;
+        }
+        nfts.push(item.token);
+        nftIds.push(item.identifier);
+      }
     }
   }
 
@@ -50,6 +66,14 @@ export function handleOrderFulfilled(event: OrderFulfilled): void {
   const buyer = isBid ? offerer : recipient;
   const seller = isBid ? recipient : offerer;
   
+  /*
+  log.info("handleOrderFulfilled triggered: seller = {}, buyer = {}, isBid = {} ", [
+    seller.toHexString(),
+    buyer.toHexString(),
+    isBid.toString()
+  ]);
+  */
+
   if (nfts.length == 1) {
     /*
     let sale = new Sale(event.transaction.hash.toHex() + "-" + event.logIndex.toString());
@@ -81,7 +105,7 @@ export function handleOrderFulfilled(event: OrderFulfilled): void {
     evnt.fromAccount = seller.toHexString();
     evnt.toAccount = buyer.toHexString();
     //return;
-
+  
     evnt.value = paymentAmount;
     evnt.usd = USDValue(event.block.timestamp, event.block.number);
     evnt.blockNumber = event.block.number;
