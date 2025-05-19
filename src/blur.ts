@@ -4,15 +4,14 @@ import {
     Execution721MakerFeePacked,
     Execution721TakerFeePacked,
 } from "../generated/BlurExchange/BlurExchange"
-import { BlurExecutionContext, Event } from "../generated/schema";
+import { TransactionExecutionContext, Event } from "../generated/schema";
 import { getGlobalId, updateSaleState } from "./utils/helpers";
 import { USDValue } from "./utils/conversions";
 
 import {
     Transfer as BlurTransfer
   } from '../generated/BlurBiddingERC20/BlurBiddingERC20';
-
-const TARGET_TOKEN = Bytes.fromHexString("0x282bdd42f4eb70e7a9d9f40c8fea0825b7f68c5d")!;
+import { TARGET_TOKEN } from "./utils/constants";
 
 function decodeAddressFromLowBits(value: BigInt): Bytes {
     const maskBytes = Bytes.fromHexString("0xffffffffffffffffffffffffffffffffffffffff") as ByteArray;
@@ -54,17 +53,18 @@ export function handleExecution721Packed(event: Execution721Packed): void {
     
     // Ne garder que la collection ciblée
     if (!collection.equals(TARGET_TOKEN)) {
-
+/*
         log.warning("TARGET_TOKEN not match tx {} collection {}", [
             event.transaction.hash.toHex(),
             collection.toHexString()
         ])
+*/
         return;
     }
     
     const id = event.transaction.hash.toHex() + "-" + event.logIndex.toString();
 
-    const context = BlurExecutionContext.load(event.transaction.hash.toHex());
+    const context = TransactionExecutionContext.load(event.transaction.hash.toHexString());
     if (!context) {
         log.warning("Execution721Packed: context not found for tx {}", [id]);
         return;
@@ -93,6 +93,7 @@ export function handleExecution721Packed(event: Execution721Packed): void {
     evnt.usd = USDValue(event.block.timestamp, event.block.number);
     evnt.blockNumber = event.block.number;
     evnt.blockTimestamp = event.block.timestamp;
+    evnt.isBid = isBid
     evnt.transactionHash = event.transaction.hash;
     debugEvent(evnt);
     evnt.save();
@@ -102,16 +103,21 @@ export function handleExecution721Packed(event: Execution721Packed): void {
 
 export function handleTransfer(event: BlurTransfer): void {
     const txHash = event.transaction.hash.toHex()
-    let ctx = BlurExecutionContext.load(txHash)
+    let ctx = TransactionExecutionContext.load(txHash)
     if (ctx) {
+        // Mettre à jour les informations de paiement
         ctx!.paymentAmount = event.params.value
-        ctx!.from = event.params.from
         ctx!.paymentToken = event.address
         ctx!.isBid = true
+        
+        // Ne pas modifier les adresses from/to ici
+        // Elles sont définies par le handleTransfer de CryptoPunks
+        // ou par handleExecution721Packed si le Transfer ERC-721 
+        // n'a pas encore été traité
+        
         ctx!.save()
     }
 }
-
 
 export function debugEvent(evnt: Event): void {
     log.info("─[ Debug Event ]─────────────────────────────", []);
