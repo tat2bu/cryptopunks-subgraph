@@ -1,4 +1,4 @@
-import { BigInt } from '@graphprotocol/graph-ts';
+import { BigInt, Bytes } from '@graphprotocol/graph-ts';
 
 /**
  * Common constants used throughout the CryptoPunks subgraph
@@ -24,3 +24,5 @@ export let washTrades = [
   '0x92488a00dfa0746c300c66a716e6cc11ba9c0f9d40d8c58e792cc7fcebf432d0',
   '0xa4fa9c0976e550a27184c1ffd17f55f770c9afa429b7cd8495004302a82722c5'
 ];
+
+export const TARGET_TOKEN = Bytes.fromHexString("0xb7f7f6c52f2e2fdb1963eab30438024864c313f6")!;

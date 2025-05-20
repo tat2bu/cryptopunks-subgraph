@@ -1,15 +1,15 @@
 import { OrderFulfilled } from "../generated/Seaport/Seaport"
-import { Bundle, FeeRecipient, Event } from "../generated/schema"
-import { BigInt, Bytes } from "@graphprotocol/graph-ts"
+import { Bundle, FeeRecipient, Event, TransactionExecutionContext } from "../generated/schema"
+import { Address, BigInt, Bytes, log } from "@graphprotocol/graph-ts"
 import { USDValue } from "./utils/conversions";
 import { getGlobalId, updateSaleState } from "./utils/helpers";
-
-const TARGET_TOKEN = Bytes.fromHexString("0xb7f7f6c52f2e2fdb1963eab30438024864c313f6")!;
+import { TARGET_TOKEN, ZERO_ADDRESS } from "./utils/constants";
 
 export function handleOrderFulfilled(event: OrderFulfilled): void {
-  
-  let offerer = event.params.offerer;
+
+
   let recipient = event.params.recipient;
+
   let offer = event.params.offer;
   let consideration = event.params.consideration;
 
@@ -18,38 +18,60 @@ export function handleOrderFulfilled(event: OrderFulfilled): void {
   let paymentToken: Bytes | null = null;
   let paymentAmount = BigInt.zero();
   let matchFound = false;
-  let isBid = offer.length > 0 && (offer[0].itemType == 0 || offer[0].itemType == 1);
+  //let isBid = offer.length > 0 && (offer[0].itemType == 2 || offer[0].itemType == 3);
+  let isBid = consideration.filter(c => c.recipient.toHexString().toLowerCase() === '0x0000a26b00c1F0DF003000390027140000fAa719'.toLowerCase()).length > 0;
 
-  
-  if (isBid) {
-    for (let i = 0; i < consideration.length; i++) {
-      let item = consideration[i];
-      if (item.itemType == 2 || item.itemType == 3) {
-        if (item.token.equals(TARGET_TOKEN)) {
-          matchFound = true;
-        }
-        nfts.push(item.token);
-        nftIds.push(item.identifier);
+  log.warning("isBid triggered: tx = {}, isBid = {}", [
+    event.transaction.hash.toHexString(),
+    isBid.toString(),
+  ]);
+
+  if (isBid && event.params.zone && !event.params.zone.equals(Address.zero())) {
+    /*
+        log.warning("Ignoring zone {} for tx and event {} {}", [
+            event.params.zone.toHexString().toLowerCase(),
+            event.transaction.hash.toHex(),
+            event.logIndex.toString()
+        ])
+    */
+    // do not index fees transactions
+    return
+  }
+
+  for (let i = 0; i < offer.length; i++) {
+    let item = offer[i];
+
+    if (item.itemType == 2 || item.itemType == 3) {
+      if (item.token.equals(TARGET_TOKEN)) {
+        matchFound = true;
       }
-    }
-  } else {
-    for (let i = 0; i < offer.length; i++) {
-      let item = offer[i];
-      
-      if (item.itemType == 2 || item.itemType == 3) {
-        if (item.token.equals(TARGET_TOKEN)) {
-          matchFound = true;
-        }
-        nfts.push(item.token);
-        nftIds.push(item.identifier);
-      }
+      nfts.push(item.token);
+      nftIds.push(item.identifier);
     }
   }
 
+  for (let i = 0; i < consideration.length; i++) {
+    let item = consideration[i];
+
+    if (item.itemType == 0 || item.itemType == 1) {
+      paymentToken = item.token;
+      paymentAmount = paymentAmount.plus(item.amount);
+    } else {
+      // fees
+      /*
+      let feeRecipient = new FeeRecipient(event.transaction.hash.toHex() + "-" + j.toString());
+      feeRecipient.recipient = item.;
+      feeRecipient.amount = item.amount;
+      feeRecipient.event = event.transaction.hash.toHex();
+      feeRecipient.save();
+      */
+    }
+  }
   if (!matchFound) {
     return;
   }
 
+  /*
   for (let j = 0; j < consideration.length; j++) {
     let item = consideration[j];
     if (item.itemType == 0 || item.itemType == 1) {
@@ -63,16 +85,36 @@ export function handleOrderFulfilled(event: OrderFulfilled): void {
       feeRecipient.save();
     }
   }
-  const buyer = isBid ? offerer : recipient;
-  const seller = isBid ? recipient : offerer;
-  
-  /*
-  log.info("handleOrderFulfilled triggered: seller = {}, buyer = {}, isBid = {} ", [
-    seller.toHexString(),
-    buyer.toHexString(),
-    isBid.toString()
-  ]);
   */
+
+  let evntId = getGlobalId(event);
+  let context = TransactionExecutionContext.load(event.transaction.hash.toHexString());
+
+  if (!context) {
+
+    log.warning("creatingContext for: tx = {}", [
+      event.transaction.hash.toHexString()
+    ]);
+    context = new TransactionExecutionContext(event.transaction.hash.toHexString())
+    context.tokenIds = []
+    context.from = Bytes.fromHexString("0x0000000000000000000000000000000000000000")!;
+    context.to = Bytes.fromHexString("0x0000000000000000000000000000000000000000")!;
+
+    context.collection = TARGET_TOKEN;
+    context.paymentAmount = null;
+    context.paymentToken = Bytes.fromHexString("0x0000000000000000000000000000000000000000")!;
+    context.isBid = false;
+    context.timestamp = event.block.timestamp;
+    context.eventId = evntId
+    context.save()
+  }
+
+  log.warning("handleOrderFulfilled triggered: tx = {}, isBid = {}, amount = {} ", [
+    event.transaction.hash.toString(),
+    isBid.toString(),
+    paymentAmount.toString()
+  ]);
+
 
   if (nfts.length == 1) {
     /*
@@ -95,29 +137,34 @@ export function handleOrderFulfilled(event: OrderFulfilled): void {
     sale.transaction = event.transaction.hash;
     sale.save();
     */
-    
-    let evntId = getGlobalId(event);
+
     let evnt = new Event(evntId);
-    
+
     evnt.type = 'Sale';
     evnt.platform = 'opensea';
     evnt.tokenId = nftIds[0];
-    evnt.fromAccount = seller.toHexString();
-    evnt.toAccount = buyer.toHexString();
+    evnt.fromAccount = context!.from.toHexString();
+    evnt.toAccount = context!.to.toHexString();
+    evnt.isBid = isBid
     //return;
-  
+
+    log.warning("context was existing for: tx = {} from = {} to = {}", [
+      event.transaction.hash.toHexString(),
+      context!.from.toHexString(),
+      context!.to.toHexString()
+    ]);
     evnt.value = paymentAmount;
     evnt.usd = USDValue(event.block.timestamp, event.block.number);
     evnt.blockNumber = event.block.number;
     evnt.blockTimestamp = event.block.timestamp;
     evnt.transactionHash = event.transaction.hash;
-    evnt.save();   
+    evnt.save();
   } else {
     let bundle = new Bundle(event.transaction.hash.toHex());
     bundle.platform = 'opensea';
-    bundle.offerer = seller;
-    bundle.buyer = buyer;
-    bundle.recipient = recipient;    
+    bundle.offerer = context!.from;
+    bundle.buyer = context!.to;
+    bundle.recipient = recipient;
     bundle.tokenContracts = nfts;
     bundle.tokenIds = nftIds;
     if (paymentToken !== null) {

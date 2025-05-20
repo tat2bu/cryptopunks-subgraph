@@ -3,9 +3,9 @@
  * @description Handles events from the CryptoPunksMarket contract and updates the subgraph accordingly.
  */
 
-import { BigInt, Bytes, store } from '@graphprotocol/graph-ts';
+import { BigInt, Bytes, log, store } from '@graphprotocol/graph-ts';
 
-import { Account, Bid, BlurExecutionContext, Event, Listing, Punk, Transfer } from '../generated/schema';
+import { Account, Bid, Bundle, Event, Listing, Punk, TransactionExecutionContext, Transfer } from '../generated/schema';
 
 import { Transfer as BlurBiddingTransfer } from "../generated/BlurBiddingERC20/BlurBiddingERC20"
 import { Transfer as WrappedTransfer } from "../generated/WrappedPunks/WrappedPunks"
@@ -19,6 +19,7 @@ import {
   PunkBidWithdrawn as PunkBidWithdrawnEvent,
   PunkBought as PunkBoughtEvent,
   PunkNoLongerForSale as PunkNoLongerForSaleEvent,
+  PunkTransfer,
 } from '../generated/CryptoPunksMarket/CryptoPunksMarket';
 
 import { getFloorFromActiveListings, getGlobalId, getOrCreateAccount, getOrCreatePunk, getOrCreateState, loadPrevBidEvent, loadPrevSaleEvent, setPunkNoLongerForSale, updateOwnership } from './utils/helpers';
@@ -481,35 +482,118 @@ export function handleWrappedTransfer(event: WrappedTransfer): void {
   prepareThirdPartySale(event);
 }
 
-export function prepareThirdPartySale(event: WrappedTransfer):void {
-  const id = event.transaction.hash.toHex()
-  let ctx = BlurExecutionContext.load(id)
 
+export function prepareThirdPartySale(event: WrappedTransfer):void {
+  const id = event.transaction.hash.toHexString()
+  let ctx = TransactionExecutionContext.load(id)
+  
   if (!ctx) {
-    ctx = new BlurExecutionContext(id)
+    // Cas 1: Transfer arrive avant OrderFulfilled
+    log.warning(
+      "Transfer arrived BEFORE OrderFulfilled - Creating new context - TxHash: {}, TokenId: {}, From: {}, To: {}",
+      [
+        id,
+        event.params.tokenId.toString(),
+        event.params.from.toHexString(),
+        event.params.to.toHexString()
+      ]
+    );
+    
+    ctx = new TransactionExecutionContext(id)
     ctx.tokenIds = []
 
     ctx.collection = TARGET_TOKEN;
-    ctx.from = event.params.from;
-    ctx.to = event.params.to;
     ctx.paymentAmount = null;
     ctx.paymentToken = Bytes.fromHexString("0x0000000000000000000000000000000000000000")!;
     ctx.isBid = false;
-    ctx.hasExecution = false;
+    ctx.from = event.params.from;
+    ctx.to = event.params.to;
     ctx.timestamp = event.block.timestamp;
+    ctx.eventId = null;
+    ctx.save();
+  } else {
+    // Cas 2: Transfer arrive après OrderFulfilled
+    log.warning(
+      "Transfer arrived AFTER OrderFulfilled - Updating context - TxHash: {}, TokenId: {}, From: {}, To: {}, ctx.eventId: {}",
+      [
+        id,
+        event.params.tokenId.toString(),
+        event.params.from.toHexString(),
+        event.params.to.toHexString(),
+        ctx.eventId != null ? ctx.eventId! : 'null'
+      ]
+    );
+    
+    // Si un Event ou Bundle a déjà été créé (eventId est présent dans le contexte),
+    // on le met à jour avec les adresses du Transfer
+    if (ctx.eventId) {
+      log.info(
+        "Updating existing entity with Transfer addresses - tx: {} EntityId: {}, From: {}, To: {}",
+        [
+          id,
+          ctx.eventId!,
+          event.params.from.toHexString(),
+          event.params.to.toHexString()
+        ]
+      );
+      
+      // Première vérification: est-ce un Event?
+      let evnt = Event.load(ctx.eventId!);
+      if (evnt) {
+        // Mise à jour des adresses avec celles du Transfer
+        evnt.fromAccount = event.params.from.toHexString();
+        evnt.toAccount = event.params.to.toHexString();
+        evnt.save();
+        
+        log.info("Event successfully updated with Transfer addresses", []);
+      } else {
+        // Si ce n'est pas un Event, c'est peut-être un Bundle
+        let bundle = Bundle.load(ctx.eventId!);
+        if (bundle) {
+          // Mise à jour des adresses du Bundle avec celles du Transfer
+          bundle.offerer = event.params.from;
+          bundle.buyer = event.params.to;
+          bundle.save();
+          
+          log.info("Bundle successfully updated with Transfer addresses", []);
+        } else {
+          log.error("Failed to load entity with id: {}", [ctx.eventId!]);
+        }
+      }
+    }
   }
 
-  const tokenId = event.params.tokenId
-  const tokenList = ctx.tokenIds
-  tokenList.push(tokenId)
-  ctx.tokenIds = tokenList
+  // IMPORTANT: Les adresses du Transfer ERC-721 sont TOUJOURS prioritaires
+  // Elles remplacent celles définies dans OrderFulfilled, même si celui-ci 
+  // a déjà été traité et a créé un contexte
+  ctx.from = event.params.from;
+  ctx.to = event.params.to;
 
-  ctx.save()  
+  // Éviter les doublons dans la liste des tokenIds
+  const tokenId = event.params.tokenId;
+  const tokenList = ctx.tokenIds;
+  
+  // Vérifier si le tokenId est déjà dans la liste
+  let tokenExists = false;
+  for (let i = 0; i < tokenList.length; i++) {
+    if (tokenList[i].equals(tokenId)) {
+      tokenExists = true;
+      break;
+    }
+  }
+  
+  // Ajouter le tokenId seulement s'il n'est pas déjà présent
+  if (!tokenExists) {
+    tokenList.push(tokenId);
+    ctx.tokenIds = tokenList;
+  }
+
+  ctx.save();
 }
 
 export function handleERC20BlurTransfer(event: BlurBiddingTransfer) :void {
     const txHash = event.transaction.hash.toHex()
-    let ctx = BlurExecutionContext.load(txHash)
+    let ctx = TransactionExecutionContext.load(txHash)
     if (ctx) {
         ctx!.paymentAmount = event.params.value
         ctx!.from = event.params.from
