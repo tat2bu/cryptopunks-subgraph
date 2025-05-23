@@ -13,9 +13,9 @@ dataSources:
     source:
       abi: CryptoPunksV1
       address: "0x759c6C1923910930C18ef490B3c3DbeFf24003cE"
-      # startBlock: 14066948 # Mainnet punk v1 market creation
+      startBlock: 14066948 # Mainnet punk v1 market creation
       # startBlock: 20551614 # Punk v1 hell tx
-      startBlock: 20442441 # Punk v1 another hell tx
+      # startBlock: 20442441 # Punk v1 another hell tx
       # startBlock: 19561439 # Mainnet punk v1 blur token payment before 
       # startBlock: 19854893 # Test case blur + opensea on 2787
       # startBlock: 20025701 # Test opensea bid on 2787
@@ -62,9 +62,9 @@ dataSources:
       # 0x282bdd42f4eb70e7a9d9f40c8fea0825b7f68c5d # wrapper
       # 0x6ba6f2207e343923ba692e5cae646fb0f566db8d # v1 original
       # 0x759c6C1923910930C18ef490B3c3DbeFf24003cE # punk market
-      # startBlock: 3842489 # Mainnet v1 punk token creation
+      startBlock: 3842489 # Mainnet v1 punk token creation
       # startBlock: 20551614 # Punk v1 hell tx
-      startBlock: 20442441 # Punk v1 another hell tx
+      # startBlock: 20442441 # Punk v1 another hell tx
       # startBlock: 19561439 # Mainnet punk v1 blur token payment before  0x62dd5dccbfbef1a88bd8e59e5e45b96035e5fff41da70d59c430c402e5f21d88
       # startBlock: 19854893 # Test case blur + opensea on 2787
       # startBlock: 20025701 # Test opensea bid on 2787
@@ -104,9 +104,9 @@ dataSources:
       # 0x282bdd42f4eb70e7a9d9f40c8fea0825b7f68c5d # wrapper
       # 0x6ba6f2207e343923ba692e5cae646fb0f566db8d # v1 original
       # 0x759c6C1923910930C18ef490B3c3DbeFf24003cE # punk market
-      # startBlock: 14022431 # Mainnet wrapper creation
+      startBlock: 14022431 # Mainnet wrapper creation
       # startBlock: 20551614 # Punk v1 hell tx
-      startBlock: 20442441 # Punk v1 another hell tx
+      # startBlock: 20442441 # Punk v1 another hell tx
       # startBlock: 19561439 # Mainnet punk v1 blur token payment before 
       # startBlock: 19854893 # Test case blur + opensea on 2787
       # startBlock: 20025701 # Test opensea bid on 2787
@@ -142,10 +142,10 @@ dataSources:
     source:
       address: "0x0000000000a39bb272e79075ade125fd351887ac"
       abi: BlurBiddingERC20
-      # startBlock: 16108399 # blur bidding contract creation
+      startBlock: 16108399 # blur bidding contract creation
       # startBlock: 19561439 # Mainnet punk v1 blur token payment before 
       # startBlock: 20551614 # Punk v1 hell tx
-      startBlock: 20442441 # Punk v1 another hell tx
+      # startBlock: 20442441 # Punk v1 another hell tx
       # startBlock: 19854893 # Test case blur + opensea on 2787
       # startBlock: 20025701 # Test opensea bid on 2787
       # startBlock: 19854893 # Test blur bid on 2787
@@ -171,9 +171,9 @@ dataSources:
     source:
       address: "0xb2ecfe4e4d61f8790bbb9de2d1259b9e2410cea5" # adresse du BlurExchange v2
       abi: BlurExchange
-      # startBlock: 17603892 # blur exchange v2 contract creation
+      startBlock: 17603892 # blur exchange v2 contract creation
       # startBlock: 20551614 # Punk v1 hell tx
-      startBlock: 20442441 # Punk v1 another hell tx
+      # startBlock: 20442441 # Punk v1 another hell tx
       # startBlock: 19561439 # Mainnet punk v1 blur token payment before 
       # startBlock: 19854893 # Test case blur + opensea on 2787
       # startBlock: 20025701 # Test opensea bid on 2787
@@ -205,9 +205,9 @@ dataSources:
     source:
       address: "0x0000000000000068f116a894984e2db1123eb395"
       abi: Seaport
-      # startBlock: 19442152 # seaport 1.6 contract creation
+      startBlock: 19442152 # seaport 1.6 contract creation
       # startBlock: 20551614 # Punk v1 hell tx
-      startBlock: 20442441 # Punk v1 another hell tx
+      # startBlock: 20442441 # Punk v1 another hell tx
       # startBlock: 19561439 # Mainnet punk v1 blur token payment before 
       # startBlock: 19854893 # Test case blur + opensea on 2787
       # startBlock: 20025701 # Test opensea bid on 2787
