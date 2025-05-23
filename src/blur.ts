@@ -95,10 +95,24 @@ export function handleExecution721Packed(event: Execution721Packed): void {
     evnt.blockTimestamp = event.block.timestamp;
     evnt.isBid = isBid
     evnt.transactionHash = event.transaction.hash;
-    debugEvent(evnt);
     evnt.save();
 
+    if (!context.eventIds) {
+        context.eventIds = [];
+    }
+    const eventIds = context.eventIds
+    eventIds.push(evnt.id)
+    context.eventIds = eventIds
+    context.save()
+    
+    log.warning('added event id {} to context {} —> {}', [
+        evnt.id,
+        context.id,
+        context.eventIds.length.toString()
+    ])
+
     updateSaleState(evnt)
+    
 }
 
 export function handleTransfer(event: BlurTransfer): void {
@@ -116,6 +130,25 @@ export function handleTransfer(event: BlurTransfer): void {
         // n'a pas encore été traité
         
         ctx!.save()
+
+        if (ctx.eventIds != null) {
+            for (let i=0; i<ctx.eventIds!.length; i++) {
+                const eventId = ctx.eventIds![i]
+                let evnt = Event.load(eventId);
+                if (evnt && evnt.value.isZero()) {
+                    evnt.value = ctx.paymentAmount!;
+                    evnt.save();
+                    
+                    log.warning("Event successfully updated with paymentAmount", []);
+                    break;
+                }
+            }
+        }
+
+        log.warning('blur log for tx {} with event id {}', [
+            ctx.id,
+            ctx.eventIds != null ? ctx.eventIds!.length.toString() : 'null'
+        ])
     }
 }
 

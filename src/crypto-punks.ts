@@ -206,55 +206,58 @@ export function prepareThirdPartySale(event: PunkTransfer):void {
     ctx.from = event.params.from;
     ctx.to = event.params.to;
     ctx.timestamp = event.block.timestamp;
-    ctx.eventId = null;
+    ctx.eventIds = [];
     ctx.save();
   } else {
     // Cas 2: Transfer arrive après OrderFulfilled
     log.warning(
-      "Transfer arrived AFTER OrderFulfilled - Updating context - TxHash: {}, TokenId: {}, From: {}, To: {}, ctx.eventId: {}",
+      "Transfer arrived AFTER OrderFulfilled - Updating context - TxHash: {}, TokenId: {}, From: {}, To: {}, ctx.eventIds: {}",
       [
         id,
         event.params.punkIndex.toString(),
         event.params.from.toHexString(),
         event.params.to.toHexString(),
-        ctx.eventId != null ? ctx.eventId! : 'null'
+        ctx.eventIds.length.toString()
       ]
     );
     
     // Si un Event ou Bundle a déjà été créé (eventId est présent dans le contexte),
     // on le met à jour avec les adresses du Transfer
-    if (ctx.eventId) {
-      log.info(
-        "Updating existing entity with Transfer addresses - tx: {} EntityId: {}, From: {}, To: {}",
-        [
-          id,
-          ctx.eventId!,
-          event.params.from.toHexString(),
-          event.params.to.toHexString()
-        ]
-      );
-      
-      // Première vérification: est-ce un Event?
-      let evnt = Event.load(ctx.eventId!);
-      if (evnt) {
-        // Mise à jour des adresses avec celles du Transfer
-        evnt.fromAccount = event.params.from.toHexString();
-        evnt.toAccount = event.params.to.toHexString();
-        evnt.save();
+    if (ctx.eventIds.length > 0) {
+      for (let i=0; i<ctx.eventIds.length; i++) {
+        const eventId = ctx.eventIds[i]
+        log.info(
+          "Updating existing entity with Transfer addresses - tx: {} EntityId: {}, From: {}, To: {}",
+          [
+            id,
+            eventId,
+            event.params.from.toHexString(),
+            event.params.to.toHexString()
+          ]
+        );
         
-        log.info("Event successfully updated with Transfer addresses", []);
-      } else {
-        // Si ce n'est pas un Event, c'est peut-être un Bundle
-        let bundle = Bundle.load(ctx.eventId!);
-        if (bundle) {
-          // Mise à jour des adresses du Bundle avec celles du Transfer
-          bundle.offerer = event.params.from;
-          bundle.buyer = event.params.to;
-          bundle.save();
+        // Première vérification: est-ce un Event?
+        let evnt = Event.load(eventId);
+        if (evnt) {
+          // Mise à jour des adresses avec celles du Transfer
+          evnt.fromAccount = event.params.from.toHexString();
+          evnt.toAccount = event.params.to.toHexString();
+          evnt.save();
           
-          log.info("Bundle successfully updated with Transfer addresses", []);
+          log.info("Event successfully updated with Transfer addresses", []);
         } else {
-          log.error("Failed to load entity with id: {}", [ctx.eventId!]);
+          // Si ce n'est pas un Event, c'est peut-être un Bundle
+          let bundle = Bundle.load(eventId);
+          if (bundle) {
+            // Mise à jour des adresses du Bundle avec celles du Transfer
+            bundle.offerer = event.params.from;
+            bundle.buyer = event.params.to;
+            bundle.save();
+            
+            log.info("Bundle successfully updated with Transfer addresses", []);
+          } else {
+            log.error("Failed to load entity with id: {}", [eventId]);
+          }
         }
       }
     }

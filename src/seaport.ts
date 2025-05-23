@@ -48,11 +48,22 @@ export function handleOrderFulfilled(event: OrderFulfilled): void {
       nfts.push(item.token);
       nftIds.push(item.identifier);
     }
+
+    if (item.itemType == 0 || item.itemType == 1) {
+      paymentToken = item.token;
+      paymentAmount = paymentAmount.plus(item.amount);
+    }
   }
 
   for (let i = 0; i < consideration.length; i++) {
     let item = consideration[i];
-
+    if (item.itemType == 2 || item.itemType == 3) {
+      if (item.token.equals(TARGET_TOKEN)) {
+        matchFound = true;
+      }
+      nfts.push(item.token);
+      nftIds.push(item.identifier);
+    }
     if (item.itemType == 0 || item.itemType == 1) {
       paymentToken = item.token;
       paymentAmount = paymentAmount.plus(item.amount);
@@ -105,7 +116,7 @@ export function handleOrderFulfilled(event: OrderFulfilled): void {
     context.paymentToken = Bytes.fromHexString("0x0000000000000000000000000000000000000000")!;
     context.isBid = false;
     context.timestamp = event.block.timestamp;
-    context.eventId = evntId
+    context.eventIds = [evntId]
     context.save()
   }
 
@@ -158,6 +169,12 @@ export function handleOrderFulfilled(event: OrderFulfilled): void {
     evnt.blockNumber = event.block.number;
     evnt.blockTimestamp = event.block.timestamp;
     evnt.transactionHash = event.transaction.hash;
+    
+    const eventIds = context.eventIds
+    eventIds.push(evnt.id)
+    context.eventIds = eventIds
+    context.save()
+    
     evnt.save();
   } else {
     let bundle = new Bundle(event.transaction.hash.toHex());
