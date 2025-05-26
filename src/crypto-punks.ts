@@ -19,6 +19,11 @@ import {
   Assign,
   PunkTransfer
 } from '../generated/CryptoPunksV1Token/CryptoPunksV1Token';
+
+import {
+  Transfer as WrappedTransfer
+} from '../generated/CryptoPunksV1WrappedToken/CryptoPunksV1WrappedToken';
+
 import { Transfer as BlurBiddingTransfer } from "../generated/BlurBiddingERC20/BlurBiddingERC20"
 
 import { getFloorFromActiveListings, getGlobalId, getOrCreateAccount, getOrCreatePunk, getOrCreateState, loadPrevBidEvent, loadPrevSaleEvent, setPunkNoLongerForSale, updateOwnership, updateSaleState } from './utils/helpers';
@@ -95,7 +100,29 @@ export function handleTransfer(event: PunkTransfer): void {
   const tx = event.transaction.hash
 
   handleTransferInner(event, tx, to, from, event.params.punkIndex);
-  prepareThirdPartySale(event);  
+  prepareThirdPartySale(event.transaction.hash, event.params.from, event.params.to, event.block.timestamp, event.params.punkIndex);  
+}
+
+
+/**
+ * Handles the PunkTransfer event.
+ * @param event - The PunkTransferEvent object.
+ */
+export function handleWrappedTransfer(event: WrappedTransfer): void {
+
+  let to = event.params.to.toHexString();
+  let from = event.params.from.toHexString();
+
+  const tx = event.transaction.hash
+  log.warning('handleWrappedTransfer {} {}', [tx.toHexString(), event.params.tokenId.toString()])
+
+  handleTransferInner(event, tx, to, from, event.params.tokenId);
+  // gruik
+  prepareThirdPartySale(event.transaction.hash, event.params.from, event.params.to, event.block.timestamp, event.params.tokenId);  
+
+  const punk = getOrCreatePunk(event.params.tokenId.toString())
+  punk.wrapped = true
+  punk.save()
 }
 
 export function handleTransferInner(
@@ -180,8 +207,9 @@ export function handleTransferInner(
 
 }
 
-export function prepareThirdPartySale(event: PunkTransfer):void {
-  const id = event.transaction.hash.toHexString()
+export function prepareThirdPartySale(hash: Bytes, from: Bytes, to: Bytes, timestamp:BigInt, transferredTokenId:BigInt):void {
+  const id = hash.toHexString()
+  
   let ctx = TransactionExecutionContext.load(id)
   
   if (!ctx) {
@@ -190,9 +218,9 @@ export function prepareThirdPartySale(event: PunkTransfer):void {
       "Transfer arrived BEFORE OrderFulfilled - Creating new context - TxHash: {}, TokenId: {}, From: {}, To: {}",
       [
         id,
-        event.params.punkIndex.toString(),
-        event.params.from.toHexString(),
-        event.params.to.toHexString()
+        transferredTokenId.toString(),
+        from.toHexString(),
+        to.toHexString()
       ]
     );
     
@@ -203,9 +231,9 @@ export function prepareThirdPartySale(event: PunkTransfer):void {
     ctx.paymentAmount = null;
     ctx.paymentToken = Bytes.fromHexString("0x0000000000000000000000000000000000000000")!;
     ctx.isBid = false;
-    ctx.from = event.params.from;
-    ctx.to = event.params.to;
-    ctx.timestamp = event.block.timestamp;
+    ctx.from = from;
+    ctx.to = to;
+    ctx.timestamp = timestamp;
     ctx.eventIds = [];
     ctx.save();
   } else {
@@ -214,9 +242,9 @@ export function prepareThirdPartySale(event: PunkTransfer):void {
       "Transfer arrived AFTER OrderFulfilled - Updating context - TxHash: {}, TokenId: {}, From: {}, To: {}, ctx.eventIds: {}",
       [
         id,
-        event.params.punkIndex.toString(),
-        event.params.from.toHexString(),
-        event.params.to.toHexString(),
+        transferredTokenId.toString(),
+        from.toHexString(),
+        to.toHexString(),
         ctx.eventIds.length.toString()
       ]
     );
@@ -231,8 +259,8 @@ export function prepareThirdPartySale(event: PunkTransfer):void {
           [
             id,
             eventId,
-            event.params.from.toHexString(),
-            event.params.to.toHexString()
+            from.toHexString(),
+            to.toHexString()
           ]
         );
         
@@ -240,8 +268,8 @@ export function prepareThirdPartySale(event: PunkTransfer):void {
         let evnt = Event.load(eventId);
         if (evnt) {
           // Mise à jour des adresses avec celles du Transfer
-          evnt.fromAccount = event.params.from.toHexString();
-          evnt.toAccount = event.params.to.toHexString();
+          evnt.fromAccount = from.toHexString();
+          evnt.toAccount = to.toHexString();
           evnt.save();
           
           log.info("Event successfully updated with Transfer addresses", []);
@@ -250,8 +278,8 @@ export function prepareThirdPartySale(event: PunkTransfer):void {
           let bundle = Bundle.load(eventId);
           if (bundle) {
             // Mise à jour des adresses du Bundle avec celles du Transfer
-            bundle.offerer = event.params.from;
-            bundle.buyer = event.params.to;
+            bundle.offerer = from;
+            bundle.buyer = to;
             bundle.save();
             
             log.info("Bundle successfully updated with Transfer addresses", []);
@@ -266,11 +294,11 @@ export function prepareThirdPartySale(event: PunkTransfer):void {
   // IMPORTANT: Les adresses du Transfer ERC-721 sont TOUJOURS prioritaires
   // Elles remplacent celles définies dans OrderFulfilled, même si celui-ci 
   // a déjà été traité et a créé un contexte
-  ctx.from = event.params.from;
-  ctx.to = event.params.to;
+  ctx.from = from;
+  ctx.to = to;
 
   // Éviter les doublons dans la liste des tokenIds
-  const tokenId = event.params.punkIndex;
+  const tokenId = transferredTokenId;
   const tokenList = ctx.tokenIds;
   
   // Vérifier si le tokenId est déjà dans la liste

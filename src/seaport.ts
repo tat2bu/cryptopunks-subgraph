@@ -114,10 +114,23 @@ export function handleOrderFulfilled(event: OrderFulfilled): void {
     context.collection = TARGET_TOKEN;
     context.paymentAmount = null;
     context.paymentToken = Bytes.fromHexString("0x0000000000000000000000000000000000000000")!;
-    context.isBid = false;
+    context.isBid = isBid;
     context.timestamp = event.block.timestamp;
     context.eventIds = [evntId]
+    context.tokenIds = nftIds
     context.save()
+  } else {
+    for (let i = 0; i < nftIds.length; i++) {
+      if (context.tokenIds.includes(nftIds[i])) {
+
+        log.warning("handleOrderFulfilled token already indexed: tx = {}, token = {}", [
+          event.transaction.hash.toString(),
+          nftIds[i].toString(),
+        ]);
+        return;
+      }
+    }
+
   }
 
   log.warning("handleOrderFulfilled triggered: tx = {}, isBid = {}, amount = {} ", [

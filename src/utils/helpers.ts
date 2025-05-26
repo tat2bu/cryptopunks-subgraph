@@ -3,14 +3,14 @@
  * @description This file contains utility functions for the CryptoPunks subgraph.
  */
 
-import { BigInt, Bytes, ethereum, log, store } from '@graphprotocol/graph-ts';
+import { Address, BigInt, Bytes, ethereum, log, store } from '@graphprotocol/graph-ts';
 
 import { Account, Bid, Event, Listing, Punk, State, Transfer } from '../../generated/schema';
 
 // import { Transfer as TransferEvent, } from '../../generated/CryptoPhunks/CryptoPhunks';
 
 import { timestampToId } from './date-utils';
-import { BIGINT_ZERO, ZERO_ADDRESS } from './constants';
+import { BIGINT_ZERO, TARGET_TOKEN, ZERO_ADDRESS } from './constants';
 import { BIGINT_ONE } from './constants';
 
 import {
@@ -200,7 +200,9 @@ export function updateOwnership(
   toAccount.save();
 
   let punk = getOrCreatePunk(updateOwnershipPunkId);
-  punk.owner = toAccount.id;
+  if (toAccount.id !== ZERO_ADDRESS && toAccount.id !== TARGET_TOKEN.toHexString()) {
+    punk.owner = toAccount.id;
+  }
   punk.save();
 
   log.debug(`updateOwnership(): TXHash: {}, PunkID: {}, ToPunks: {}, FromPunks: {}`, [
