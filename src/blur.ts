@@ -95,18 +95,35 @@ export function handleExecution721Packed(event: Execution721Packed): void {
     evnt.blockTimestamp = event.block.timestamp;
     evnt.isBid = isBid
     evnt.transactionHash = event.transaction.hash;
-    debugEvent(evnt);
     evnt.save();
 
+    if (!context.eventIds) {
+        context.eventIds = [];
+    }
+    const eventIds = context.eventIds
+    eventIds.push(evnt.id)
+    context.eventIds = eventIds
+    context.save()
+    
+    log.warning('added event id {} to context {} —> {}', [
+        evnt.id,
+        context.id,
+        context.eventIds.length.toString()
+    ])
+
     updateSaleState(evnt)
+    
 }
 
 export function handleTransfer(event: BlurTransfer): void {
-    const txHash = event.transaction.hash.toHex()
+    const txHash = event.transaction.hash.toHexString()
     let ctx = TransactionExecutionContext.load(txHash)
     if (ctx) {
         // Mettre à jour les informations de paiement
-        ctx!.paymentAmount = event.params.value
+        if (!ctx!.paymentAmount) {
+            ctx!.paymentAmount = BigInt.fromI32(0)
+        }
+        ctx!.paymentAmount = ctx!.paymentAmount!.plus(event.params.value)
         ctx!.paymentToken = event.address
         ctx!.isBid = true
         
@@ -116,6 +133,32 @@ export function handleTransfer(event: BlurTransfer): void {
         // n'a pas encore été traité
         
         ctx!.save()
+
+        if (ctx.eventIds != null) {
+            for (let i=0; i<ctx.eventIds!.length; i++) {
+                const eventId = ctx.eventIds![i]
+                let evnt = Event.load(eventId);
+                if (evnt) {
+                    let tokenCount: BigInt = ctx.tokenIds != null && ctx.tokenIds.length > 0
+                        ? BigInt.fromI32(ctx.tokenIds.length)
+                        : BigInt.fromI32(1);
+
+                    log.warning("HERE {}/{} Event {} successfully updated with paymentAmount {}", [
+                        tokenCount.toString(),
+                        ctx.tokenIds!.length.toString(),
+                        eventId,
+                        evnt.value.toString()
+                    ]);
+                    evnt.value = ctx.paymentAmount!.div(tokenCount);
+                    evnt.save();
+                }
+            }
+        }
+
+        log.warning('blur log for tx {} with event id {}', [
+            ctx.id,
+            ctx.eventIds != null ? ctx.eventIds!.length.toString() : 'null'
+        ])
     }
 }
 
