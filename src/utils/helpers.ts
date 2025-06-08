@@ -177,6 +177,24 @@ export function updateOwnership(
   let toHolderPunks = toAccount.punks;
   let fromHolderPunks = fromAccount.punks;
 
+  // also check current owner from our state to enforce the process
+  // some weird wrapping contracts aren't properly tracked
+  let ownerFromGraph = getPunkOwner(punkId)
+  if (ownerFromGraph != fromAccount.id) {
+
+    log.debug(`updateOwnershipInconsistency(): TXHash: {}, ownerFromGraph: {}, fromAccount.id: {}, Punk ID: {}`, [
+      transactionHash.toHexString(),
+      ownerFromGraph,
+      fromAccount.id.toString(),
+      punkId,
+    ]);
+    let ownerFromGraphAccount = getOrCreateAccount(ownerFromGraph);
+    let ownerFromGraphPunks = ownerFromGraphAccount.punks
+    ownerFromGraphPunks = ownerFromGraphPunks.filter(n => n != updateOwnershipPunkId);
+    ownerFromGraphAccount.punks = ownerFromGraphPunks
+    ownerFromGraphAccount.save()
+  }
+
   let state = getOrCreateState(blockTimestamp);
   let prevOwners = state.owners;
 

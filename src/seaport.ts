@@ -21,14 +21,14 @@ export function handleOrderFulfilled(event: OrderFulfilled): void {
   //let isBid = offer.length > 0 && (offer[0].itemType == 2 || offer[0].itemType == 3);
   let isBid = consideration.filter(c => c.recipient.toHexString().toLowerCase() === '0x0000a26b00c1F0DF003000390027140000fAa719'.toLowerCase()).length > 0;
 
-  log.warning("isBid triggered: tx = {}, isBid = {}", [
+  log.debug("isBid triggered: tx = {}, isBid = {}", [
     event.transaction.hash.toHexString(),
     isBid.toString(),
   ]);
 
   if (isBid && event.params.zone && !event.params.zone.equals(Address.zero())) {
     /*
-        log.warning("Ignoring zone {} for tx and event {} {}", [
+        log.debug("Ignoring zone {} for tx and event {} {}", [
             event.params.zone.toHexString().toLowerCase(),
             event.transaction.hash.toHex(),
             event.logIndex.toString()
@@ -103,7 +103,7 @@ export function handleOrderFulfilled(event: OrderFulfilled): void {
 
   if (!context) {
 
-    log.warning("creatingContext for: tx = {}", [
+    log.debug("creatingContext for: tx = {}", [
       event.transaction.hash.toHexString()
     ]);
     context = new TransactionExecutionContext(event.transaction.hash.toHexString())
@@ -123,8 +123,8 @@ export function handleOrderFulfilled(event: OrderFulfilled): void {
     for (let i = 0; i < nftIds.length; i++) {
       if (context.tokenIds.includes(nftIds[i])) {
 
-        log.warning("handleOrderFulfilled token already indexed: tx = {}, token = {}", [
-          event.transaction.hash.toString(),
+        log.debug("handleOrderFulfilled token already indexed: tx = {}, token = {}", [
+          event.transaction.hash.toHexString(),
           nftIds[i].toString(),
         ]);
         return;
@@ -133,8 +133,8 @@ export function handleOrderFulfilled(event: OrderFulfilled): void {
 
   }
 
-  log.warning("handleOrderFulfilled triggered: tx = {}, isBid = {}, amount = {} ", [
-    event.transaction.hash.toString(),
+  log.debug("handleOrderFulfilled triggered: tx = {}, isBid = {}, amount = {} ", [
+    event.transaction.hash.toHexString(),
     isBid.toString(),
     paymentAmount.toString()
   ]);
@@ -172,7 +172,7 @@ export function handleOrderFulfilled(event: OrderFulfilled): void {
     evnt.isBid = isBid
     //return;
 
-    log.warning("context was existing for: tx = {} from = {} to = {}", [
+    log.debug("context was existing for: tx = {} from = {} to = {}", [
       event.transaction.hash.toHexString(),
       context!.from.toHexString(),
       context!.to.toHexString()

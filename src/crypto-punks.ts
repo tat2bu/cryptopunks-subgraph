@@ -85,7 +85,7 @@ export function handleAssign(event: Assign): void {
 
   const tx = event.transaction.hash
 
-  handleTransferInner(event, tx, to, from, event.params.punkIndex);
+  handleTransferInner(event, tx, to, from, event.params.punkIndex, 'Assigned');
 }
 
 /**
@@ -99,7 +99,9 @@ export function handleTransfer(event: PunkTransfer): void {
 
   const tx = event.transaction.hash
 
-  handleTransferInner(event, tx, to, from, event.params.punkIndex);
+  let eventType = 'Transferred'
+
+  handleTransferInner(event, tx, to, from, event.params.punkIndex, eventType);
   prepareThirdPartySale(event.transaction.hash, event.params.from, event.params.to, event.block.timestamp, event.params.punkIndex);  
 }
 
@@ -114,9 +116,9 @@ export function handleWrappedTransfer(event: WrappedTransfer): void {
   let from = event.params.from.toHexString();
 
   const tx = event.transaction.hash
-  log.warning('handleWrappedTransfer {} {}', [tx.toHexString(), event.params.tokenId.toString()])
+  log.debug('handleWrappedTransfer {} {}', [tx.toHexString(), event.params.tokenId.toString()])
 
-  handleTransferInner(event, tx, to, from, event.params.tokenId);
+  handleTransferInner(event, tx, to, from, event.params.tokenId, 'Transferred');
   // gruik
   prepareThirdPartySale(event.transaction.hash, event.params.from, event.params.to, event.block.timestamp, event.params.tokenId);  
 
@@ -130,12 +132,32 @@ export function handleTransferInner(
   tx:Bytes, 
   to:string, 
   from:string, 
-  tokenId:BigInt):void {
+  tokenId:BigInt,
+  eventType:string):void {
+
+  if (from == ZERO_ADDRESS && eventType != 'Assigned') {
+    eventType = 'Wrapped'
+  } else if (from.toLowerCase() == TARGET_TOKEN.toHexString()) {
+    eventType = 'Unwrapped'
+  }
 
   let transfer = new Transfer(tx.toHexString());
   transfer.to = to;
   transfer.from = from;
   transfer.transactionHash = tx;
+  
+  if (true || transfer.transactionHash.toHexString() == '0x560b87be91c9059a486567f03f237406f453880ac56078448f003ce9e3019ed3'
+      || transfer.transactionHash.toHexString() == '0x560b87be91c9059a486567f03f237406f453880ac56078448f003ce9e3019ed3'
+      || transfer.to.toLowerCase() == '0x516fc698fb46506aa983a14f40b30c908d86dc82'
+      || transfer.from.toLowerCase() == '0x516fc698fb46506aa983a14f40b30c908d86dc82') {
+        log.warning('maybe wrap from {} type {} to {} hash {} test1 {} test2 {}', [
+          from, eventType, to, transfer.transactionHash.toHexString(), 
+          (from == ZERO_ADDRESS).toString(), 
+          (from == TARGET_TOKEN.toHexString()).toString()
+        ])
+  }
+
+  transfer.tokenId = tokenId.toString();
   transfer.save();
 
   punkTransferTokenId = tokenId.toString();
@@ -170,7 +192,7 @@ export function handleTransferInner(
   let evntId = getGlobalId(event);
   let evnt = new Event(evntId);
   evnt.platform = NATIVE_PLATFORM;
-  evnt.type = 'Transferred';
+  evnt.type = eventType;
   evnt.tokenId = tokenId;
   evnt.fromAccount = fromAccount.id;
   evnt.toAccount = toAccount.id;
@@ -214,7 +236,7 @@ export function prepareThirdPartySale(hash: Bytes, from: Bytes, to: Bytes, times
   
   if (!ctx) {
     // Cas 1: Transfer arrive avant OrderFulfilled
-    log.warning(
+    log.info(
       "Transfer arrived BEFORE OrderFulfilled - Creating new context - TxHash: {}, TokenId: {}, From: {}, To: {}",
       [
         id,
@@ -238,7 +260,7 @@ export function prepareThirdPartySale(hash: Bytes, from: Bytes, to: Bytes, times
     ctx.save();
   } else {
     // Cas 2: Transfer arrive après OrderFulfilled
-    log.warning(
+    log.info(
       "Transfer arrived AFTER OrderFulfilled - Updating context - TxHash: {}, TokenId: {}, From: {}, To: {}, ctx.eventIds: {}",
       [
         id,
@@ -416,46 +438,44 @@ export function handlePunkOffered(event: PunkOfferedEvent): void {
   listing.save();
 
   // Events
-  if (!listing.isPrivate) {
-    let evntId = getGlobalId(event);
-    let evnt = new Event(evntId);
-    evnt.platform = NATIVE_PLATFORM;
-    evnt.type = 'Offered';
-    evnt.tokenId = event.params.punkIndex;
+  let evntId = getGlobalId(event);
+  let evnt = new Event(evntId);
+  evnt.platform = NATIVE_PLATFORM;
+  evnt.type = 'Offered';
+  evnt.tokenId = event.params.punkIndex;
 
-    evnt.fromAccount = fromAccount.id;
-    evnt.toAccount = toAccount.id;
-    evnt.value = event.params.minValue;
+  evnt.fromAccount = fromAccount.id;
+  evnt.toAccount = toAccount.id;
+  evnt.value = event.params.minValue;
 
-    evnt.usd = USDValue(event.block.timestamp, event.block.number);
+  evnt.usd = USDValue(event.block.timestamp, event.block.number);
 
-    evnt.blockNumber = event.block.number;
-    evnt.blockTimestamp = event.block.timestamp;
-    evnt.transactionHash = event.transaction.hash;
-    evnt.save();
+  evnt.blockNumber = event.block.number;
+  evnt.blockTimestamp = event.block.timestamp;
+  evnt.transactionHash = event.transaction.hash;
+  evnt.save();
 
-    let state = getOrCreateState(event.block.timestamp);
-    let newListingState = state.listings.plus(BIGINT_ONE);
-    state.listings = newListingState;
-  
-    let activeListings: string[] = [];
-    if (state.activeListings) activeListings = state.activeListings;
-    activeListings.push(punkOfferedTokenId);
-  
-    state.activeListings = activeListings;
-  
-    let listingVal = event.params.minValue;
-    if (
-      toAccount.id != ZERO_ADDRESS && 
-      listingVal.notEqual(BIGINT_ZERO) && 
-      listingVal.lt(state.floor)
-    ) {
-      state.floor = listingVal;  
-    }
-    state.usd = USDValue(event.block.timestamp, event.block.number);
-  
-    state.save();
+  let state = getOrCreateState(event.block.timestamp);
+  let newListingState = state.listings.plus(BIGINT_ONE);
+  state.listings = newListingState;
+
+  let activeListings: string[] = [];
+  if (state.activeListings) activeListings = state.activeListings;
+  activeListings.push(punkOfferedTokenId);
+
+  state.activeListings = activeListings;
+
+  let listingVal = event.params.minValue;
+  if (
+    toAccount.id != ZERO_ADDRESS && 
+    listingVal.notEqual(BIGINT_ZERO) && 
+    listingVal.lt(state.floor)
+  ) {
+    state.floor = listingVal;  
   }
+  state.usd = USDValue(event.block.timestamp, event.block.number);
+
+  state.save();
 }
 
 let punkBidEnteredTokenId: string;

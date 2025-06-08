@@ -54,7 +54,7 @@ export function handleExecution721Packed(event: Execution721Packed): void {
     // Ne garder que la collection ciblée
     if (!collection.equals(TARGET_TOKEN)) {
 /*
-        log.warning("TARGET_TOKEN not match tx {} collection {}", [
+        log.debug("TARGET_TOKEN not match tx {} collection {}", [
             event.transaction.hash.toHex(),
             collection.toHexString()
         ])
@@ -66,7 +66,7 @@ export function handleExecution721Packed(event: Execution721Packed): void {
 
     const context = TransactionExecutionContext.load(event.transaction.hash.toHexString());
     if (!context) {
-        log.warning("Execution721Packed: context not found for tx {}", [id]);
+        log.debug("Execution721Packed: context not found for tx {}", [id]);
         return;
     }
     
@@ -105,7 +105,7 @@ export function handleExecution721Packed(event: Execution721Packed): void {
     context.eventIds = eventIds
     context.save()
     
-    log.warning('added event id {} to context {} —> {}', [
+    log.debug('added event id {} to context {} —> {}', [
         evnt.id,
         context.id,
         context.eventIds.length.toString()
@@ -143,7 +143,7 @@ export function handleTransfer(event: BlurTransfer): void {
                         ? BigInt.fromI32(ctx.tokenIds.length)
                         : BigInt.fromI32(1);
 
-                    log.warning("HERE {}/{} Event {} successfully updated with paymentAmount {}", [
+                    log.debug("HERE {}/{} Event {} successfully updated with paymentAmount {}", [
                         tokenCount.toString(),
                         ctx.tokenIds!.length.toString(),
                         eventId,
@@ -155,7 +155,7 @@ export function handleTransfer(event: BlurTransfer): void {
             }
         }
 
-        log.warning('blur log for tx {} with event id {}', [
+        log.debug('blur log for tx {} with event id {}', [
             ctx.id,
             ctx.eventIds != null ? ctx.eventIds!.length.toString() : 'null'
         ])
