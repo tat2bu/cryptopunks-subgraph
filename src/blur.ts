@@ -11,7 +11,7 @@ import { USDValue } from "./utils/conversions";
 import {
     Transfer as BlurTransfer
   } from '../generated/BlurBiddingERC20/BlurBiddingERC20';
-import { TARGET_TOKEN } from "./utils/constants";
+import { TARGET_TOKENS } from "./utils/constants";
 
 function decodeAddressFromLowBits(value: BigInt): Bytes {
     const maskBytes = Bytes.fromHexString("0xffffffffffffffffffffffffffffffffffffffff") as ByteArray;
@@ -52,13 +52,11 @@ export function handleExecution721Packed(event: Execution721Packed): void {
     const collection = decodeAddressFromLowBits(packedCollectionPrice);
     
     // Ne garder que la collection ciblée
-    if (!collection.equals(TARGET_TOKEN)) {
-/*
-        log.warning("TARGET_TOKEN not match tx {} collection {}", [
+    if (!TARGET_TOKENS.includes(collection)) {
+        log.warning("TARGET_TOKENS not match tx {} collection {}", [
             event.transaction.hash.toHex(),
             collection.toHexString()
         ])
-*/
         return;
     }
     

@@ -9,6 +9,7 @@ export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 /** CryptoPunks Wrapper contract address (lowercase) */
 export const WRAPPER_ADDRESS = '0xb7f7f6c52f2e2fdb1963eab30438024864c313f6'.toLowerCase();
+export const C721_WRAPPER_ADDRESS = '0x000000000000003607fce1ac9e043a86675c5c2f'.toLowerCase();
 
 /** Block number when the Chainlink ETH/USD price feed was deployed */
 export const EACAggregatorProxyStartBlock = BigInt.fromI32(10606501);
@@ -25,4 +26,6 @@ export let washTrades = [
   '0xa4fa9c0976e550a27184c1ffd17f55f770c9afa429b7cd8495004302a82722c5'
 ];
 
-export const TARGET_TOKEN = Bytes.fromHexString("0xb7f7f6c52f2e2fdb1963eab30438024864c313f6")!;
+export const TARGET_TOKENS = [
+  Bytes.fromHexString("0xb7f7f6c52f2e2fdb1963eab30438024864c313f6")!
+];

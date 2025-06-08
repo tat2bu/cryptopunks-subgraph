@@ -23,7 +23,7 @@ import {
 } from '../generated/CryptoPunksMarket/CryptoPunksMarket';
 
 import { getFloorFromActiveListings, getGlobalId, getOrCreateAccount, getOrCreatePunk, getOrCreateState, loadPrevBidEvent, loadPrevSaleEvent, setPunkNoLongerForSale, updateOwnership } from './utils/helpers';
-import { BIGINT_ONE, BIGINT_ZERO, TARGET_TOKEN, WRAPPER_ADDRESS, ZERO_ADDRESS, washTrades } from './utils/constants';
+import { BIGINT_ONE, BIGINT_ZERO, C721_WRAPPER_ADDRESS, TARGET_TOKENS, WRAPPER_ADDRESS, ZERO_ADDRESS, washTrades } from './utils/constants';
 import { USDValue } from './utils/conversions';
 
 const NATIVE_PLATFORM = 'larvalabs';
@@ -103,7 +103,16 @@ export function handlePunkTransfer(event: PunkTransferEvent): void {
   let isUnwrapped = false;
   if (to == WRAPPER_ADDRESS) isWrapped = true;
   if (from == WRAPPER_ADDRESS) isUnwrapped = true;
+  if (to == C721_WRAPPER_ADDRESS) {
+    isWrapped = true;
+    punk.c721wrapped = true;
+  }
+  if (from == C721_WRAPPER_ADDRESS) {
+    isUnwrapped = true;
+    punk.c721wrapped = false;
+  }
   punk.wrapped = isWrapped;
+  punk.c721wrapped = isWrapped;
   punk.save();
 
   let newOwnerIsBidder = false;
@@ -481,6 +490,14 @@ export function handleWrappedTransfer(event: WrappedTransfer): void {
   prepareThirdPartySale(event);
 }
 
+/**
+ * Handles the PunkTransfer event.
+ * @param event - The PunkTransferEvent object.
+ */
+export function handleC721WrappedTransfer(event: WrappedTransfer): void {
+  prepareThirdPartySale(event);
+}
+
 
 export function prepareThirdPartySale(event: WrappedTransfer):void {
   const id = event.transaction.hash.toHexString()
@@ -501,7 +518,7 @@ export function prepareThirdPartySale(event: WrappedTransfer):void {
     ctx = new TransactionExecutionContext(id)
     ctx.tokenIds = []
 
-    ctx.collection = TARGET_TOKEN;
+    ctx.collection = TARGET_TOKENS[0]; // TODO: check if this is correct
     ctx.paymentAmount = null;
     ctx.paymentToken = Bytes.fromHexString("0x0000000000000000000000000000000000000000")!;
     ctx.isBid = false;

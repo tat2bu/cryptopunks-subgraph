@@ -3,7 +3,7 @@ import { Bundle, FeeRecipient, Event, TransactionExecutionContext } from "../gen
 import { Address, BigInt, Bytes, log } from "@graphprotocol/graph-ts"
 import { USDValue } from "./utils/conversions";
 import { getGlobalId, updateSaleState } from "./utils/helpers";
-import { TARGET_TOKEN, ZERO_ADDRESS } from "./utils/constants";
+import { TARGET_TOKENS, ZERO_ADDRESS } from "./utils/constants";
 
 export function handleOrderFulfilled(event: OrderFulfilled): void {
 
@@ -42,7 +42,7 @@ export function handleOrderFulfilled(event: OrderFulfilled): void {
     let item = offer[i];
 
     if (item.itemType == 2 || item.itemType == 3) {
-      if (item.token.equals(TARGET_TOKEN)) {
+      if (TARGET_TOKENS.includes(item.token)) {
         matchFound = true;
       }
       nfts.push(item.token);
@@ -58,7 +58,7 @@ export function handleOrderFulfilled(event: OrderFulfilled): void {
   for (let i = 0; i < consideration.length; i++) {
     let item = consideration[i];
     if (item.itemType == 2 || item.itemType == 3) {
-      if (item.token.equals(TARGET_TOKEN)) {
+      if (TARGET_TOKENS.includes(item.token)) {
         matchFound = true;
       }
       nfts.push(item.token);
@@ -111,7 +111,7 @@ export function handleOrderFulfilled(event: OrderFulfilled): void {
     context.from = Bytes.fromHexString("0x0000000000000000000000000000000000000000")!;
     context.to = Bytes.fromHexString("0x0000000000000000000000000000000000000000")!;
 
-    context.collection = TARGET_TOKEN;
+    context.collection = TARGET_TOKENS[0]; // TODO: check if this is correct
     context.paymentAmount = null;
     context.paymentToken = Bytes.fromHexString("0x0000000000000000000000000000000000000000")!;
     context.isBid = isBid;

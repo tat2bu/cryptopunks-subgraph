@@ -88,6 +88,7 @@ export function getOrCreatePunk(
     punk = new Punk(id);
     punk.owner = ZERO_ADDRESS;
     punk.wrapped = false;
+    punk.c721wrapped = false;
     if (save) punk.save();
   }
 
