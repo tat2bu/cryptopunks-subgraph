@@ -105,6 +105,7 @@ export function handlePunkTransfer(event: PunkTransferEvent): void {
   if (from == WRAPPER_ADDRESS) isUnwrapped = true;
   if (to == C721_WRAPPER_ADDRESS) {
     isWrapped = true;
+    log.warning('Punk {} was wrapped in transaction {}', [punkTransferTokenId, event.transaction.hash.toHexString()]);
     punk.c721wrapped = true;
   }
   if (from == C721_WRAPPER_ADDRESS) {
@@ -112,7 +113,6 @@ export function handlePunkTransfer(event: PunkTransferEvent): void {
     punk.c721wrapped = false;
   }
   punk.wrapped = isWrapped;
-  punk.c721wrapped = isWrapped;
   punk.save();
 
   let newOwnerIsBidder = false;

@@ -27,5 +27,6 @@ export let washTrades = [
 ];
 
 export const TARGET_TOKENS = [
-  Bytes.fromHexString("0xb7f7f6c52f2e2fdb1963eab30438024864c313f6")!
+  Bytes.fromHexString("0xb7f7f6c52f2e2fdb1963eab30438024864c313f6")!,
+  Bytes.fromHexString("0x000000000000003607fce1ac9e043a86675c5c2f")!,
 ];
