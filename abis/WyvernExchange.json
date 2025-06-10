@@ -1,0 +1,39 @@
+[
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": false,
+                "name": "buyHash",
+                "type": "bytes32"
+            },
+            {
+                "indexed": false,
+                "name": "sellHash",
+                "type": "bytes32"
+            },
+            {
+                "indexed": false,
+                "name": "maker",
+                "type": "address"
+            },
+            {
+                "indexed": false,
+                "name": "taker",
+                "type": "address"
+            },
+            {
+                "indexed": false,
+                "name": "price",
+                "type": "uint256"
+            },
+            {
+                "indexed": false,
+                "name": "metadata",
+                "type": "bytes32"
+            }
+        ],
+        "name": "OrdersMatched",
+        "type": "event"
+    }
+]
