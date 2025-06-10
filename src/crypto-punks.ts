@@ -146,6 +146,7 @@ export function handleTransferInner(
   transfer.from = from;
   transfer.transactionHash = tx;
   
+  /*
   if (true || transfer.transactionHash.toHexString() == '0x560b87be91c9059a486567f03f237406f453880ac56078448f003ce9e3019ed3'
       || transfer.transactionHash.toHexString() == '0x560b87be91c9059a486567f03f237406f453880ac56078448f003ce9e3019ed3'
       || transfer.to.toLowerCase() == '0x516fc698fb46506aa983a14f40b30c908d86dc82'
@@ -156,6 +157,7 @@ export function handleTransferInner(
           (from == TARGET_TOKEN.toHexString()).toString()
         ])
   }
+  */
 
   transfer.tokenId = tokenId.toString();
   transfer.save();
