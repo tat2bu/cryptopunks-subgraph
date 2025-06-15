@@ -264,7 +264,12 @@ export function handlePunkOffered(event: PunkOfferedEvent): void {
 
   // Punk
   let punk = Punk.load(punkOfferedTokenId);
-  if (!punk) punk = new Punk(punkOfferedTokenId);
+  if (!punk) {
+    punk = new Punk(punkOfferedTokenId);
+    punk.owner = ZERO_ADDRESS;
+    punk.wrapped = false;
+    punk.c721wrapped = false;
+  }
 
   // Active Listings
   let listing = Listing.load(punkOfferedTokenId);
@@ -338,7 +343,10 @@ export function handlePunkBidEntered(event: PunkBidEnteredEvent): void {
 
   // Punk
   let punk = Punk.load(punkBidEnteredTokenId);
-  if (punk == null) punk = new Punk(punkBidEnteredTokenId);
+  if (punk == null) {
+    punk = new Punk(punkBidEnteredTokenId);
+    punk.c721wrapped = false;
+  }
 
   // Active Bid
   let bid = Bid.load(punkBidEnteredTokenId);
@@ -488,6 +496,14 @@ export function handlePunkNoLongerForSale(event: PunkNoLongerForSaleEvent): void
  */
 export function handleWrappedTransfer(event: WrappedTransfer): void {
   prepareThirdPartySale(event);
+
+  updateOwnership(
+    event.transaction.hash,
+    event.block.timestamp,
+    event.params.tokenId.toString(),
+    event.params.to.toHexString(),
+    event.params.from.toHexString()
+  );
 }
 
 /**
@@ -496,6 +512,14 @@ export function handleWrappedTransfer(event: WrappedTransfer): void {
  */
 export function handleC721WrappedTransfer(event: WrappedTransfer): void {
   prepareThirdPartySale(event);
+
+  updateOwnership(
+    event.transaction.hash,
+    event.block.timestamp,
+    event.params.tokenId.toString(),
+    event.params.to.toHexString(),
+    event.params.from.toHexString()
+  );
 }
 
 

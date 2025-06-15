@@ -52,7 +52,7 @@ dataSources:
     network: mainnet
     source:
       abi: C721WrappedPunks
-      address: "0xb7f7f6c52f2e2fdb1963eab30438024864c313f6"
+      address: "0x000000000000003607fce1ac9e043a86675c5c2f"
       # 0x282bdd42f4eb70e7a9d9f40c8fea0825b7f68c5d # wrapper
       # 0x000000000000003607fce1ac9e043a86675c5c2f # C721 wrapper 
       # 0x6ba6f2207e343923ba692e5cae646fb0f566db8d # v1 original
@@ -90,7 +90,7 @@ dataSources:
     network: mainnet
     source:
       abi: WrappedPunks
-      address: "0x282bdd42f4eb70e7a9d9f40c8fea0825b7f68c5d" # wrapper
+      address: "0xb7f7f6c52f2e2fdb1963eab30438024864c313f6" # wrapper V2
       startBlock: 14022431 # Mainnet wrapper creation
       # startBlock: 19029676 # C721 contract creation
     mapping:
