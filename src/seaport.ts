@@ -3,10 +3,13 @@ import { Bundle, FeeRecipient, Event, TransactionExecutionContext } from "../gen
 import { Address, BigInt, Bytes, log } from "@graphprotocol/graph-ts"
 import { USDValue } from "./utils/conversions";
 import { getGlobalId, updateSaleState } from "./utils/helpers";
-import { TARGET_TOKEN, ZERO_ADDRESS } from "./utils/constants";
+import { ONLY_ON_TX, TARGET_TOKEN, ZERO_ADDRESS } from "./utils/constants";
 
 export function handleOrderFulfilled(event: OrderFulfilled): void {
-
+  
+  if (ONLY_ON_TX != "" && event.transaction.hash.toHex() != ONLY_ON_TX) {
+    return
+  }
 
   let recipient = event.params.recipient;
 
@@ -21,19 +24,18 @@ export function handleOrderFulfilled(event: OrderFulfilled): void {
   //let isBid = offer.length > 0 && (offer[0].itemType == 2 || offer[0].itemType == 3);
   let isBid = consideration.filter(c => c.recipient.toHexString().toLowerCase() === '0x0000a26b00c1F0DF003000390027140000fAa719'.toLowerCase()).length > 0;
 
-  log.debug("isBid triggered: tx = {}, isBid = {}", [
+  log.warning("isBid triggered: tx = {}, isBid = {}", [
     event.transaction.hash.toHexString(),
     isBid.toString(),
   ]);
 
   if (isBid && event.params.zone && !event.params.zone.equals(Address.zero())) {
-    /*
-        log.debug("Ignoring zone {} for tx and event {} {}", [
-            event.params.zone.toHexString().toLowerCase(),
-            event.transaction.hash.toHex(),
-            event.logIndex.toString()
-        ])
-    */
+  
+      log.warning("Ignoring zone {} for tx and event {} {}", [
+          event.params.zone.toHexString().toLowerCase(),
+          event.transaction.hash.toHex(),
+          event.logIndex.toString()
+      ])
     // do not index fees transactions
     return
   }
@@ -79,6 +81,11 @@ export function handleOrderFulfilled(event: OrderFulfilled): void {
     }
   }
   if (!matchFound) {
+    if (ONLY_ON_TX != "" && event.transaction.hash.toHex() != ONLY_ON_TX) {
+      log.warning("No match found for tx = {}", [
+        event.transaction.hash.toHexString()
+      ]);
+    }
     return;
   }
 
@@ -121,22 +128,25 @@ export function handleOrderFulfilled(event: OrderFulfilled): void {
     context.save()
   } else {
     for (let i = 0; i < nftIds.length; i++) {
+      /*
       if (context.tokenIds.includes(nftIds[i])) {
 
-        log.debug("handleOrderFulfilled token already indexed: tx = {}, token = {}", [
+        log.warning("handleOrderFulfilled token already indexed: tx = {}, token = {}", [
           event.transaction.hash.toHexString(),
           nftIds[i].toString(),
         ]);
         return;
       }
+        */
     }
 
   }
 
-  log.debug("handleOrderFulfilled triggered: tx = {}, isBid = {}, amount = {} ", [
+  log.warning("handleOrderFulfilled triggered: tx = {}, isBid = {}, amount = {}, nfts = {} ", [
     event.transaction.hash.toHexString(),
     isBid.toString(),
-    paymentAmount.toString()
+    paymentAmount.toString(),
+    nfts.length.toString()
   ]);
 
 

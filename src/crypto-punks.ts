@@ -27,7 +27,7 @@ import {
 import { Transfer as BlurBiddingTransfer } from "../generated/BlurBiddingERC20/BlurBiddingERC20"
 
 import { getFloorFromActiveListings, getGlobalId, getOrCreateAccount, getOrCreatePunk, getOrCreateState, loadPrevBidEvent, loadPrevSaleEvent, setPunkNoLongerForSale, updateOwnership, updateSaleState } from './utils/helpers';
-import { BIGINT_ONE, BIGINT_ZERO, ZERO_ADDRESS, washTrades } from './utils/constants';
+import { BIGINT_ONE, BIGINT_ZERO, ONLY_ON_TX, ZERO_ADDRESS, washTrades } from './utils/constants';
 import { USDValue } from './utils/conversions';
 
 const TARGET_TOKEN = Bytes.fromHexString("0x282bdd42f4eb70e7a9d9f40c8fea0825b7f68c5d")!;
@@ -80,6 +80,10 @@ let punkTransferTokenId: string;
 
 export function handleAssign(event: Assign): void {
 
+  if (ONLY_ON_TX != "" && event.transaction.hash.toHex() != ONLY_ON_TX) {
+    return
+  }  
+
   let to = event.params.to.toHexString();
   let from = ZERO_ADDRESS;
 
@@ -93,6 +97,9 @@ export function handleAssign(event: Assign): void {
  * @param event - The PunkTransferEvent object.
  */
 export function handleTransfer(event: PunkTransfer): void {
+  if (ONLY_ON_TX != "" && event.transaction.hash.toHex() != ONLY_ON_TX) {
+    return
+  }
 
   let to = event.params.to.toHexString();
   let from = event.params.from.toHexString();
@@ -111,6 +118,9 @@ export function handleTransfer(event: PunkTransfer): void {
  * @param event - The PunkTransferEvent object.
  */
 export function handleWrappedTransfer(event: WrappedTransfer): void {
+  if (ONLY_ON_TX != "" && event.transaction.hash.toHex() != ONLY_ON_TX) {
+    return
+  }
 
   let to = event.params.to.toHexString();
   let from = event.params.from.toHexString();
@@ -134,6 +144,9 @@ export function handleTransferInner(
   from:string, 
   tokenId:BigInt,
   eventType:string):void {
+  if (ONLY_ON_TX != "" && event.transaction.hash.toHex() != ONLY_ON_TX) {
+    return
+  }
 
   if (from == ZERO_ADDRESS && eventType != 'Assigned') {
     eventType = 'Wrapped'
@@ -232,6 +245,7 @@ export function handleTransferInner(
 }
 
 export function prepareThirdPartySale(hash: Bytes, from: Bytes, to: Bytes, timestamp:BigInt, transferredTokenId:BigInt):void {
+  
   const id = hash.toHexString()
   
   let ctx = TransactionExecutionContext.load(id)
@@ -349,6 +363,10 @@ let punkBoughtTokenId: string;
  * @param event - The PunkBoughtEvent object.
  */
 export function handlePunkBought(event: PunkBoughtEvent): void {
+  if (ONLY_ON_TX != "" && event.transaction.hash.toHex() != ONLY_ON_TX) {
+    return
+  }
+
   punkBoughtTokenId = event.params.punkIndex.toString();
 
   let isWash = washTrades.includes(event.transaction.hash.toHexString());
@@ -550,6 +568,10 @@ let punkBidWithdrawnTokenId: string;
  * @param event - The PunkBidWithdrawnEvent object.
  */
 export function handlePunkBidWithdrawn(event: PunkBidWithdrawnEvent): void {
+  if (ONLY_ON_TX != "" && event.transaction.hash.toHex() != ONLY_ON_TX) {
+    return
+  }
+  
   punkBidWithdrawnTokenId = event.params.punkIndex.toString();
 
   let fromAccount = getOrCreateAccount(event.params.fromAddress.toHexString());

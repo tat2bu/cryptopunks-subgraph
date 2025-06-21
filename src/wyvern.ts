@@ -3,8 +3,13 @@ import { OrdersMatched } from "../generated/WyvernExchange/WyvernExchange"
 import { Event, TransactionExecutionContext } from "../generated/schema"
 import { getGlobalId } from "./utils/helpers";
 import { USDValue } from "./utils/conversions";
+import { ONLY_ON_TX } from "./utils/constants";
 
 export function handleOrdersMatched(event: OrdersMatched): void {
+  if (ONLY_ON_TX != "" && event.transaction.hash.toHex() != ONLY_ON_TX) {
+    return
+  }
+  
   let context = TransactionExecutionContext.load(event.transaction.hash.toHexString());    
 
   if (context == null) {

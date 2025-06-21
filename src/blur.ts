@@ -11,7 +11,7 @@ import { USDValue } from "./utils/conversions";
 import {
     Transfer as BlurTransfer
   } from '../generated/BlurBiddingERC20/BlurBiddingERC20';
-import { TARGET_TOKEN } from "./utils/constants";
+import { ONLY_ON_TX, TARGET_TOKEN } from "./utils/constants";
 
 function decodeAddressFromLowBits(value: BigInt): Bytes {
     const maskBytes = Bytes.fromHexString("0xffffffffffffffffffffffffffffffffffffffff") as ByteArray;
@@ -41,7 +41,9 @@ export function decodePrice(value: BigInt, isBid: boolean): BigInt {
 }
 
 export function handleExecution721Packed(event: Execution721Packed): void {
-
+    if (ONLY_ON_TX != "" && event.transaction.hash.toHex() != ONLY_ON_TX) {
+        return
+    }
     
     const packedTrader = event.params.tokenIdListingIndexTrader;
     const packedCollectionPrice = event.params.collectionPriceSide;
@@ -116,6 +118,9 @@ export function handleExecution721Packed(event: Execution721Packed): void {
 }
 
 export function handleTransfer(event: BlurTransfer): void {
+    if (ONLY_ON_TX != "" && event.transaction.hash.toHex() != ONLY_ON_TX) {
+        return
+    }
     const txHash = event.transaction.hash.toHexString()
     let ctx = TransactionExecutionContext.load(txHash)
     if (ctx) {
