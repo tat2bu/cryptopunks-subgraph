@@ -1,4 +1,4 @@
-import { BigInt, ethereum, log } from "@graphprotocol/graph-ts"
+import { BigInt, ethereum, log, Bytes } from "@graphprotocol/graph-ts"
 import { OrdersMatched } from "../generated/WyvernExchange/WyvernExchange"
 import { Event, TransactionExecutionContext } from "../generated/schema"
 import { getGlobalId } from "./utils/helpers";
@@ -6,7 +6,7 @@ import { USDValue } from "./utils/conversions";
 import { ONLY_ON_TX } from "./utils/constants";
 
 export function handleOrdersMatched(event: OrdersMatched): void {
-  if (ONLY_ON_TX != "" && event.transaction.hash.toHex() != ONLY_ON_TX) {
+  if (ONLY_ON_TX != "" && event.transaction.hash.toHex().toLowerCase() != ONLY_ON_TX.toLowerCase()) {
     return
   }
   
