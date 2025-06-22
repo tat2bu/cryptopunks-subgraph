@@ -495,7 +495,7 @@ export function prepareThirdPartySale(hash: Bytes, from: Bytes, to: Bytes, times
     );
 
     ctx = new TransactionExecutionContext(id)
-    ctx.tokenIds = []
+    ctx.tokenIds = [transferredTokenId]
 
     ctx.collection = TARGET_TOKEN;
     ctx.paymentAmount = null;

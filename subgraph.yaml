@@ -135,7 +135,7 @@ dataSources:
     network: mainnet
     source:
       address: "0x0000000000000068f116a894984e2db1123eb395"
-      abi: Seaport
+      abi: Seaport16
       # startBlock: 19442152
       # startBlock: 22331156
       # startBlock: 19442152 # seaport 1.6 creation
