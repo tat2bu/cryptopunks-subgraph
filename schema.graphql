@@ -109,6 +109,5 @@ type TransactionExecutionContext @entity(immutable: false) {
   paymentToken: Bytes
   isBid: Boolean!
   timestamp: BigInt!
-  eventId: String # ID de l'événement associé, pour pouvoir le retrouver et le mettre à jour
-
+  eventIds: [String!]!
 }

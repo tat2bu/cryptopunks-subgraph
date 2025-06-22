@@ -11,7 +11,7 @@ import { USDValue } from "./utils/conversions";
 import {
     Transfer as BlurTransfer
   } from '../generated/BlurBiddingERC20/BlurBiddingERC20';
-import { TARGET_TOKEN } from "./utils/constants";
+import { ONLY_ON_TX, TARGET_TOKEN } from "./utils/constants";
 
 function decodeAddressFromLowBits(value: BigInt): Bytes {
     const maskBytes = Bytes.fromHexString("0xffffffffffffffffffffffffffffffffffffffff") as ByteArray;
@@ -41,7 +41,9 @@ export function decodePrice(value: BigInt, isBid: boolean): BigInt {
 }
 
 export function handleExecution721Packed(event: Execution721Packed): void {
-
+    if (ONLY_ON_TX != "" && event.transaction.hash.toHex() != ONLY_ON_TX) {
+        return
+    }
     
     const packedTrader = event.params.tokenIdListingIndexTrader;
     const packedCollectionPrice = event.params.collectionPriceSide;
@@ -54,7 +56,7 @@ export function handleExecution721Packed(event: Execution721Packed): void {
     // Ne garder que la collection ciblée
     if (!collection.equals(TARGET_TOKEN)) {
 /*
-        log.warning("TARGET_TOKEN not match tx {} collection {}", [
+        log.debug("TARGET_TOKEN not match tx {} collection {}", [
             event.transaction.hash.toHex(),
             collection.toHexString()
         ])
@@ -66,7 +68,7 @@ export function handleExecution721Packed(event: Execution721Packed): void {
 
     const context = TransactionExecutionContext.load(event.transaction.hash.toHexString());
     if (!context) {
-        log.warning("Execution721Packed: context not found for tx {}", [id]);
+        log.debug("Execution721Packed: context not found for tx {}", [id]);
         return;
     }
     
@@ -95,18 +97,38 @@ export function handleExecution721Packed(event: Execution721Packed): void {
     evnt.blockTimestamp = event.block.timestamp;
     evnt.isBid = isBid
     evnt.transactionHash = event.transaction.hash;
-    debugEvent(evnt);
     evnt.save();
 
+    if (!context.eventIds) {
+        context.eventIds = [];
+    }
+    const eventIds = context.eventIds
+    eventIds.push(evnt.id)
+    context.eventIds = eventIds
+    context.save()
+
+    log.debug('added event id {} to context {} —> {}', [
+        evnt.id,
+        context.id,
+        context.eventIds.length.toString()
+    ])
+
     updateSaleState(evnt)
+
 }
 
 export function handleTransfer(event: BlurTransfer): void {
-    const txHash = event.transaction.hash.toHex()
+    if (ONLY_ON_TX != "" && event.transaction.hash.toHex() != ONLY_ON_TX) {
+        return
+    }
+    const txHash = event.transaction.hash.toHexString()
     let ctx = TransactionExecutionContext.load(txHash)
     if (ctx) {
         // Mettre à jour les informations de paiement
-        ctx!.paymentAmount = event.params.value
+        if (!ctx!.paymentAmount) {
+            ctx!.paymentAmount = BigInt.fromI32(0)
+        }
+        ctx!.paymentAmount = ctx!.paymentAmount!.plus(event.params.value)
         ctx!.paymentToken = event.address
         ctx!.isBid = true
         
@@ -116,6 +138,32 @@ export function handleTransfer(event: BlurTransfer): void {
         // n'a pas encore été traité
         
         ctx!.save()
+
+        if (ctx.eventIds != null) {
+            for (let i=0; i<ctx.eventIds!.length; i++) {
+                const eventId = ctx.eventIds![i]
+                let evnt = Event.load(eventId);
+                if (evnt) {
+                    let tokenCount: BigInt = ctx.tokenIds != null && ctx.tokenIds.length > 0
+                        ? BigInt.fromI32(ctx.tokenIds.length)
+                        : BigInt.fromI32(1);
+
+                    log.debug("HERE {}/{} Event {} successfully updated with paymentAmount {}", [
+                        tokenCount.toString(),
+                        ctx.tokenIds!.length.toString(),
+                        eventId,
+                        evnt.value.toString()
+                    ]);
+                    evnt.value = ctx.paymentAmount!.div(tokenCount);
+                    evnt.save();
+                }
+            }
+        }
+
+        log.debug('blur log for tx {} with event id {}', [
+            ctx.id,
+            ctx.eventIds != null ? ctx.eventIds!.length.toString() : 'null'
+        ])
     }
 }
 

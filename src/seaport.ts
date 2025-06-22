@@ -3,10 +3,13 @@ import { Bundle, FeeRecipient, Event, TransactionExecutionContext } from "../gen
 import { Address, BigInt, Bytes, log } from "@graphprotocol/graph-ts"
 import { USDValue } from "./utils/conversions";
 import { getGlobalId, updateSaleState } from "./utils/helpers";
-import { TARGET_TOKEN, ZERO_ADDRESS } from "./utils/constants";
+import { ONLY_ON_TX, TARGET_TOKEN, ZERO_ADDRESS } from "./utils/constants";
 
 export function handleOrderFulfilled(event: OrderFulfilled): void {
 
+  if (ONLY_ON_TX != "" && event.transaction.hash.toHex() != ONLY_ON_TX) {
+    return
+  }
 
   let recipient = event.params.recipient;
 
@@ -48,11 +51,22 @@ export function handleOrderFulfilled(event: OrderFulfilled): void {
       nfts.push(item.token);
       nftIds.push(item.identifier);
     }
+
+    if (item.itemType == 0 || item.itemType == 1) {
+      paymentToken = item.token;
+      paymentAmount = paymentAmount.plus(item.amount);
+    }
   }
 
   for (let i = 0; i < consideration.length; i++) {
     let item = consideration[i];
-
+    if (item.itemType == 2 || item.itemType == 3) {
+      if (item.token.equals(TARGET_TOKEN)) {
+        matchFound = true;
+      }
+      nfts.push(item.token);
+      nftIds.push(item.identifier);
+    }
     if (item.itemType == 0 || item.itemType == 1) {
       paymentToken = item.token;
       paymentAmount = paymentAmount.plus(item.amount);
@@ -68,6 +82,11 @@ export function handleOrderFulfilled(event: OrderFulfilled): void {
     }
   }
   if (!matchFound) {
+    if (ONLY_ON_TX != "" && event.transaction.hash.toHex() != ONLY_ON_TX) {
+      log.warning("No match found for tx = {}", [
+        event.transaction.hash.toHexString()
+      ]);
+    }
     return;
   }
 
@@ -92,7 +111,7 @@ export function handleOrderFulfilled(event: OrderFulfilled): void {
 
   if (!context) {
 
-    log.warning("creatingContext for: tx = {}", [
+    log.debug("creatingContext for: tx = {}", [
       event.transaction.hash.toHexString()
     ]);
     context = new TransactionExecutionContext(event.transaction.hash.toHexString())
@@ -105,14 +124,30 @@ export function handleOrderFulfilled(event: OrderFulfilled): void {
     context.paymentToken = Bytes.fromHexString("0x0000000000000000000000000000000000000000")!;
     context.isBid = false;
     context.timestamp = event.block.timestamp;
-    context.eventId = evntId
+    context.eventIds = [evntId]
+    context.tokenIds = nftIds
     context.save()
+  } else {
+    for (let i = 0; i < nftIds.length; i++) {
+      /*
+      if (context.tokenIds.includes(nftIds[i])) {
+
+        log.warning("handleOrderFulfilled token already indexed: tx = {}, token = {}", [
+          event.transaction.hash.toHexString(),
+          nftIds[i].toString(),
+        ]);
+        return;
+      }
+        */
+    }
+
   }
 
-  log.warning("handleOrderFulfilled triggered: tx = {}, isBid = {}, amount = {} ", [
-    event.transaction.hash.toString(),
+  log.warning("handleOrderFulfilled triggered: tx = {}, isBid = {}, amount = {}, nfts = {} ", [
+    event.transaction.hash.toHexString(),
     isBid.toString(),
-    paymentAmount.toString()
+    paymentAmount.toString(),
+    nfts.length.toString()
   ]);
 
 
@@ -148,7 +183,7 @@ export function handleOrderFulfilled(event: OrderFulfilled): void {
     evnt.isBid = isBid
     //return;
 
-    log.warning("context was existing for: tx = {} from = {} to = {}", [
+    log.debug("context was existing for: tx = {} from = {} to = {}", [
       event.transaction.hash.toHexString(),
       context!.from.toHexString(),
       context!.to.toHexString()
@@ -158,6 +193,12 @@ export function handleOrderFulfilled(event: OrderFulfilled): void {
     evnt.blockNumber = event.block.number;
     evnt.blockTimestamp = event.block.timestamp;
     evnt.transactionHash = event.transaction.hash;
+
+    const eventIds = context.eventIds
+    eventIds.push(evnt.id)
+    context.eventIds = eventIds
+    context.save()
+
     evnt.save();
   } else {
     let bundle = new Bundle(event.transaction.hash.toHex());
