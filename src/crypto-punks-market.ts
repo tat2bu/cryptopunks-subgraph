@@ -633,15 +633,4 @@ export function prepareThirdPartySale(event: WrappedTransfer):void {
   ctx.save();
 }
 
-export function handleERC20BlurTransfer(event: BlurBiddingTransfer) :void {
-    const txHash = event.transaction.hash.toHex()
-    let ctx = TransactionExecutionContext.load(txHash)
-    if (ctx) {
-        ctx!.paymentAmount = event.params.value
-        ctx!.from = event.params.from
-        ctx!.paymentToken = event.address
-        ctx!.isBid = true
-        ctx!.save()
-    }
-}
 

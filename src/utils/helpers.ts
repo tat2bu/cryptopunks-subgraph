@@ -10,7 +10,7 @@ import { Account, Bid, Event, Listing, Punk, State, Transfer } from '../../gener
 import { Transfer as TransferEvent, } from '../../generated/CryptoPunksMarket/CryptoPunksMarket';
 
 import { timestampToId } from './date-utils';
-import { BIGINT_ZERO, ZERO_ADDRESS } from './constants';
+import {BIGINT_ZERO, C721_WRAPPER_ADDRESS, WRAPPER_ADDRESS, ZERO_ADDRESS} from './constants';
 import { BIGINT_ONE } from './constants';
 import { USDValue } from '../utils/conversions';
 
@@ -173,6 +173,24 @@ export function updateOwnership(
   let toHolderPunks = toAccount.punks;
   let fromHolderPunks = fromAccount.punks;
 
+  // also check current owner from our state to enforce the process
+  // some weird wrapping contracts aren't properly tracked
+  let ownerFromGraph = getPunkOwner(punkId)
+  if (ownerFromGraph != fromAccount.id) {
+
+    log.debug(`updateOwnershipInconsistency(): TXHash: {}, ownerFromGraph: {}, fromAccount.id: {}, Punk ID: {}`, [
+      transactionHash.toHexString(),
+      ownerFromGraph,
+      fromAccount.id.toString(),
+      punkId,
+    ]);
+    let ownerFromGraphAccount = getOrCreateAccount(ownerFromGraph);
+    let ownerFromGraphPunks = ownerFromGraphAccount.punks
+    ownerFromGraphPunks = ownerFromGraphPunks.filter(n => n != updateOwnershipPunkId);
+    ownerFromGraphAccount.punks = ownerFromGraphPunks
+    ownerFromGraphAccount.save()
+  }
+
   let state = getOrCreateState(blockTimestamp);
   let prevOwners = state.owners;
 
@@ -196,7 +214,9 @@ export function updateOwnership(
   toAccount.save();
 
   let punk = getOrCreatePunk(updateOwnershipPunkId);
-  punk.owner = toAccount.id;
+  if (toAccount.id !== ZERO_ADDRESS && toAccount.id !== WRAPPER_ADDRESS && toAccount.id !== C721_WRAPPER_ADDRESS) {
+    punk.owner = toAccount.id;
+  }
   punk.save();
 
   log.debug(`updateOwnership(): TXHash: {}, PunkID: {}, ToPunks: {}, FromPunks: {}`, [
