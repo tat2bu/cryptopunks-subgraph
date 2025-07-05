@@ -87,11 +87,22 @@ export function handleExecution721Packed(event: Execution721Packed): void {
     evnt.toAccount = context.to.toHexString();
     //return;
 
+
+    let tokenCount: BigInt = context.tokenIds != null && context.tokenIds.length > 0
+        ? BigInt.fromI32(context.tokenIds.length)
+        : BigInt.fromI32(1);
+
+
+    evnt.value = BigInt.zero();
+
     if (context.paymentAmount) {
         evnt.value = context.paymentAmount!;
+        evnt.value = context.paymentAmount!.div(tokenCount);
     } else {
         evnt.value = price;
+        evnt.value = price.div(tokenCount);
     }
+    
     evnt.usd = USDValue(event.block.timestamp, event.block.number);
     evnt.blockNumber = event.block.number;
     evnt.blockTimestamp = event.block.timestamp;
@@ -148,13 +159,14 @@ export function handleTransfer(event: BlurTransfer): void {
                         ? BigInt.fromI32(ctx.tokenIds.length)
                         : BigInt.fromI32(1);
 
+                    evnt.value = ctx.paymentAmount!.div(tokenCount);
+                    
                     log.debug("HERE {}/{} Event {} successfully updated with paymentAmount {}", [
                         tokenCount.toString(),
                         ctx.tokenIds!.length.toString(),
                         eventId,
                         evnt.value.toString()
                     ]);
-                    evnt.value = ctx.paymentAmount!.div(tokenCount);
                     evnt.save();
                 }
             }
