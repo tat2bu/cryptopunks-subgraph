@@ -552,6 +552,12 @@ export function prepareThirdPartySale(event: WrappedTransfer):void {
     ctx.eventIds = [];
     ctx.save();
   } else {
+
+    const tokenIds = ctx.tokenIds
+    tokenIds.push(event.params.tokenId)
+    ctx.tokenIds = tokenIds
+    ctx.save();
+
     // Cas 2: Transfer arrive après OrderFulfilled
     log.warning(
       "Transfer arrived AFTER OrderFulfilled - Updating context - TxHash: {}, TokenId: {}, From: {}, To: {}, ctx.eventIds: {}",
@@ -585,6 +591,13 @@ export function prepareThirdPartySale(event: WrappedTransfer):void {
         // Mise à jour des adresses avec celles du Transfer
         evnt.fromAccount = event.params.from.toHexString();
         evnt.toAccount = event.params.to.toHexString();
+
+        // update the value
+        let tokenCount: BigInt = ctx.tokenIds != null && ctx.tokenIds.length > 0
+                      ? BigInt.fromI32(ctx.tokenIds.length)
+                      : BigInt.fromI32(1);
+        evnt.value = evnt.value.div(tokenCount);
+
         evnt.save();
         
         log.info("Event successfully updated with Transfer addresses", []);
