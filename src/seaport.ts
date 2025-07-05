@@ -120,7 +120,7 @@ export function handleOrderFulfilled(event: OrderFulfilled): void {
     context.to = Bytes.fromHexString("0x0000000000000000000000000000000000000000")!;
 
     context.collection = TARGET_TOKEN;
-    context.paymentAmount = null;
+    context.paymentAmount = BigInt.zero();
     context.paymentToken = Bytes.fromHexString("0x0000000000000000000000000000000000000000")!;
     context.isBid = false;
     context.timestamp = event.block.timestamp;

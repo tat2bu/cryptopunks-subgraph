@@ -12,6 +12,7 @@ dataSources:
       # startBlock: 19442152 # seaport 1.6 creation
       # startBlock: 22434014 # test blur phunk
       startBlock: 12674389 # cryptophunks contract creation
+      # startBlock: 17991938 # blur sweep tx
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -53,6 +54,7 @@ dataSources:
       # startBlock: 19442152 # seaport 1.6 creation
       # startBlock: 22434014 # test blur phunk
       startBlock: 12674389 # cryptophunks contract creation
+      # startBlock: 17991938 # blur sweep tx
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -86,6 +88,7 @@ dataSources:
       # startBlock: 19442152 # seaport 1.6 creation
       # startBlock: 22434014 # test blur phunk
       startBlock: 12674389 # cryptophunks contract creation
+      # startBlock: 17991938 # blur sweep tx
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -111,6 +114,7 @@ dataSources:
       # startBlock: 19442152 # seaport 1.6 creation
       # startBlock: 22434014 # test blur phunk
       startBlock: 12674389 # cryptophunks contract creation
+      # startBlock: 17991938 # blur sweep tx
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -141,6 +145,7 @@ dataSources:
       # startBlock: 19442152 # seaport 1.6 creation
       # startBlock: 22434014 # test blur phunk
       startBlock: 12674389 # cryptophunks contract creation
+      # startBlock: 17991938 # blur sweep tx
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -180,6 +185,7 @@ dataSources:
       # startBlock: 19854893 # Test blur bid on 2787
       # startBlock: 19653721 # Test blur standard on 2787
       # startBlock: 22397637 # Test opensea standard on 2787
+      # startBlock: 17991938 # blur sweep tx
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -204,6 +210,7 @@ dataSources:
       address: "0x00000000000001ad428e4906aE43D8F9852d0dD6"
       abi: Seaport14
       startBlock: 16655960 # seaport 1.4 contract creation
+      # startBlock: 17991938 # blur sweep tx
       # startBlock: 17697675 # seaport 1.5 punk v1 example
       # startBlock: 17164831 # seaport 1.4 punk v1 example
       # startBlock: 16169914 # seaport 1.1 punk v1 example
@@ -243,6 +250,8 @@ dataSources:
       address: "0x00000000006c3852cbEf3e08E8dF289169EdE581"
       abi: Seaport11
       startBlock: 14946474 # seaport 1.1 contract creation
+      # startBlock: 17991938 # blur sweep tx
+      # startBlock: 17991938 # blur sweep tx
       # startBlock: 17697675 # seaport 1.5 punk v1 example
       # startBlock: 17164831 # seaport 1.4 punk v1 example
       # startBlock: 16169914 # seaport 1.1 punk v1 example
@@ -282,6 +291,7 @@ dataSources:
       address: "0x7Be8076f4EA4A4AD08075C2508e481d6C946D12b"
       abi: WyvernExchange
       startBlock: 12674389 # wyvern contract creation
+      #startBlock: 17991938 # blur sweep tx
       # startBlock: 17697675 # seaport 1.5 punk v1 example
       # startBlock: 17164831 # seaport 1.4 punk v1 example
       # startBlock: 16169914 # seaport 1.1 punk v1 example

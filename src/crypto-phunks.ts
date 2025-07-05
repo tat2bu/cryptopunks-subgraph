@@ -498,7 +498,7 @@ export function prepareThirdPartySale(hash: Bytes, from: Bytes, to: Bytes, times
     ctx.tokenIds = [transferredTokenId]
 
     ctx.collection = TARGET_TOKEN;
-    ctx.paymentAmount = null;
+    ctx.paymentAmount = BigInt.zero();
     ctx.paymentToken = Bytes.fromHexString("0x0000000000000000000000000000000000000000")!;
     ctx.isBid = false;
     ctx.from = from;
@@ -507,6 +507,11 @@ export function prepareThirdPartySale(hash: Bytes, from: Bytes, to: Bytes, times
     ctx.eventIds = [];
     ctx.save();
   } else {
+    const tokenIds = ctx.tokenIds
+    tokenIds.push(transferredTokenId)
+    ctx.tokenIds = tokenIds
+    ctx.save();
+
     // Cas 2: Transfer arrive après OrderFulfilled
     log.info(
         "Transfer arrived AFTER OrderFulfilled - Updating context - TxHash: {}, TokenId: {}, From: {}, To: {}, ctx.eventIds: {}",
@@ -540,6 +545,12 @@ export function prepareThirdPartySale(hash: Bytes, from: Bytes, to: Bytes, times
           // Mise à jour des adresses avec celles du Transfer
           evnt.fromAccount = from.toHexString();
           evnt.toAccount = to.toHexString();
+
+          // update the value
+          let tokenCount: BigInt = ctx.tokenIds != null && ctx.tokenIds.length > 0
+                        ? BigInt.fromI32(ctx.tokenIds.length)
+                        : BigInt.fromI32(1);
+          evnt.value = evnt.value.div(tokenCount);
           evnt.save();
 
           log.info("Event successfully updated with Transfer addresses", []);
