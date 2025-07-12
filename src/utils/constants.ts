@@ -9,6 +9,7 @@ export let BIGINT_ONE = BigInt.fromI32(1);
 export const TARGET_TOKEN = Bytes.fromHexString("0x282bdd42f4eb70e7a9d9f40c8fea0825b7f68c5d") as Bytes;
 
 // export const ONLY_ON_TX:string = "0xe0f91066dec4acedd280a2d1d6d8a3e81e8e66664036bba2dc933301968f72fb";
+// export const ONLY_ON_TX:string = "0xc471effc1b3d6eb78035dcf9be5ac69ce01419e7e3e530bfe99b8be7ac5c0cb0";
 export const ONLY_ON_TX:string = "";
 // export const ONLY_ON_TX:string = "0xf4bf0d474fb8fcaa069799e754ad9a6fbd4b7a46eb2d02963f51468521af7121";
 

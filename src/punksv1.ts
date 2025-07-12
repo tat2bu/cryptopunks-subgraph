@@ -276,9 +276,24 @@ export function prepareThirdPartySale(hash: Bytes, from: Bytes, to: Bytes, times
     ctx.save();
   } else {
 
-    const tokenIds = ctx.tokenIds
-    tokenIds.push(transferredTokenId)
-    ctx.tokenIds = tokenIds
+    // Éviter les doublons dans la liste des tokenIds
+    const tokenIds = ctx.tokenIds;
+    let tokenExists = false;
+    
+    // Vérifier si le tokenId est déjà dans la liste
+    for (let i = 0; i < tokenIds.length; i++) {
+      if (tokenIds[i].equals(transferredTokenId)) {
+        tokenExists = true;
+        break;
+      }
+    }
+    
+    // Ajouter le tokenId seulement s'il n'est pas déjà présent
+    if (!tokenExists) {
+      tokenIds.push(transferredTokenId);
+      ctx.tokenIds = tokenIds;
+    }
+    
     ctx.save();
 
     // Cas 2: Transfer arrive après OrderFulfilled
@@ -319,7 +334,14 @@ export function prepareThirdPartySale(hash: Bytes, from: Bytes, to: Bytes, times
           let tokenCount: BigInt = ctx.tokenIds != null && ctx.tokenIds.length > 0
                         ? BigInt.fromI32(ctx.tokenIds.length)
                         : BigInt.fromI32(1);
+          
           evnt.value = evnt.value.div(tokenCount);
+          log.warning("[PUNKV1] tx {} updating event {} with value {} / {}", [
+            hash.toHexString(),
+            eventId,
+            evnt.value.toString(),
+            tokenCount.toString()
+          ]);
 
           evnt.save();
           
@@ -347,25 +369,6 @@ export function prepareThirdPartySale(hash: Bytes, from: Bytes, to: Bytes, times
   // a déjà été traité et a créé un contexte
   ctx.from = from;
   ctx.to = to;
-
-  // Éviter les doublons dans la liste des tokenIds
-  const tokenId = transferredTokenId;
-  const tokenList = ctx.tokenIds;
-  
-  // Vérifier si le tokenId est déjà dans la liste
-  let tokenExists = false;
-  for (let i = 0; i < tokenList.length; i++) {
-    if (tokenList[i].equals(tokenId)) {
-      tokenExists = true;
-      break;
-    }
-  }
-  
-  // Ajouter le tokenId seulement s'il n'est pas déjà présent
-  if (!tokenExists) {
-    tokenList.push(tokenId);
-    ctx.tokenIds = tokenList;
-  }
 
   ctx.save();
 }
