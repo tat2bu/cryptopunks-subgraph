@@ -3,17 +3,21 @@
  * @description This file contains utility functions for the CryptoPunks subgraph.
  */
 
-import { BigInt, Bytes, ethereum, log, store } from '@graphprotocol/graph-ts';
+import { Address, BigInt, Bytes, ethereum, log, store } from '@graphprotocol/graph-ts';
 
 import { Account, Bid, Event, Listing, Punk, State, Transfer } from '../../generated/schema';
 
 // import { Transfer as TransferEvent, } from '../../generated/CryptoPhunks/CryptoPhunks';
 
 import { timestampToId } from './date-utils';
-import { BIGINT_ZERO, ZERO_ADDRESS } from './constants';
+import { BIGINT_ZERO, TARGET_TOKEN, ZERO_ADDRESS } from './constants';
 import { BIGINT_ONE } from './constants';
 import { USDValue } from './conversions';
 
+import {
+  PunkBought as PunkBoughtEvent,
+} from '../../generated/CryptoPunksV1/CryptoPunksV1';
+import { USDValue } from './conversions';
 /**
  * Generates a global ID for an event.
  * @param event - The ethereum event.
@@ -174,6 +178,24 @@ export function updateOwnership(
   let toHolderPunks = toAccount.punks;
   let fromHolderPunks = fromAccount.punks;
 
+  // also check current owner from our state to enforce the process
+  // some weird wrapping contracts aren't properly tracked
+  let ownerFromGraph = getPunkOwner(punkId)
+  if (ownerFromGraph != fromAccount.id) {
+
+    log.debug(`updateOwnershipInconsistency(): TXHash: {}, ownerFromGraph: {}, fromAccount.id: {}, Punk ID: {}`, [
+      transactionHash.toHexString(),
+      ownerFromGraph,
+      fromAccount.id.toString(),
+      punkId,
+    ]);
+    let ownerFromGraphAccount = getOrCreateAccount(ownerFromGraph);
+    let ownerFromGraphPunks = ownerFromGraphAccount.punks
+    ownerFromGraphPunks = ownerFromGraphPunks.filter(n => n != updateOwnershipPunkId);
+    ownerFromGraphAccount.punks = ownerFromGraphPunks
+    ownerFromGraphAccount.save()
+  }
+
   let state = getOrCreateState(blockTimestamp);
   let prevOwners = state.owners;
 
@@ -197,7 +219,9 @@ export function updateOwnership(
   toAccount.save();
 
   let punk = getOrCreatePunk(updateOwnershipPunkId);
-  punk.owner = toAccount.id;
+  if (toAccount.id !== ZERO_ADDRESS && toAccount.id !== TARGET_TOKEN.toHexString()) {
+    punk.owner = toAccount.id;
+  }
   punk.save();
 
   log.debug(`updateOwnership(): TXHash: {}, PunkID: {}, ToPunks: {}, FromPunks: {}`, [
@@ -240,6 +264,40 @@ export function loadPrevBidEvent(topBid: string | null): Event | null {
 export function loadPrevSaleEvent(topSale: string | null): Event | null {
   if (topSale == null) return null;
   return Event.load(topSale as string) || null;
+}
+
+export function updateSaleState(evnt: Event): void {
+  // State
+  let state = getOrCreateState(evnt.blockTimestamp);
+  let topSale = state.topSale;
+  let prevSaleEvent = loadPrevSaleEvent(topSale);
+
+  let prevEventSaleValue: BigInt;
+  if (prevSaleEvent && prevSaleEvent.value && prevSaleEvent.value.gt(BIGINT_ZERO)) {
+    prevEventSaleValue = prevSaleEvent.value;
+    if (evnt.value.gt(prevEventSaleValue)) state.topSale = evnt.id;
+  } else {
+    state.topSale = evnt.id;
+  }
+
+  // Avoid direct array assignment to prevent referencing previous state arrays.
+  let tokenId = evnt.tokenId.toString();
+  let currentActiveListings = state.activeListings;
+  let newActiveListings: string[] = [];
+  for (let i = 0; i < currentActiveListings.length; i++) {
+    if (currentActiveListings[i] != tokenId) {
+      newActiveListings.push(currentActiveListings[i]);
+    }
+  }
+  state.activeListings = newActiveListings;
+
+
+  let newFloor = getFloorFromActiveListings(state);
+  state.floor = newFloor;
+  state.sales = state.sales.plus(BIGINT_ONE);
+  state.volume = state.volume.plus(evnt.value);
+  state.usd = USDValue(evnt.blockTimestamp, evnt.blockNumber);
+  state.save();
 }
 
 /**
@@ -308,37 +366,3 @@ export function hexToDecimal(hexString: string): BigInt {
   return decimal;
 }
 
-
-export function updateSaleState(evnt: Event): void {
-  // State
-  let state = getOrCreateState(evnt.blockTimestamp);
-  let topSale = state.topSale;
-  let prevSaleEvent = loadPrevSaleEvent(topSale);
-
-  let prevEventSaleValue: BigInt;
-  if (prevSaleEvent && prevSaleEvent.value && prevSaleEvent.value.gt(BIGINT_ZERO)) {
-    prevEventSaleValue = prevSaleEvent.value;
-    if (evnt.value.gt(prevEventSaleValue)) state.topSale = evnt.id;
-  } else {
-    state.topSale = evnt.id;
-  }
-
-  // Avoid direct array assignment to prevent referencing previous state arrays.
-  let tokenId = evnt.tokenId.toString();
-  let currentActiveListings = state.activeListings;
-  let newActiveListings: string[] = [];
-  for (let i = 0; i < currentActiveListings.length; i++) {
-    if (currentActiveListings[i] != tokenId) {
-      newActiveListings.push(currentActiveListings[i]);
-    }
-  }
-  state.activeListings = newActiveListings;
-
-
-  let newFloor = getFloorFromActiveListings(state);
-  state.floor = newFloor;
-  state.sales = state.sales.plus(BIGINT_ONE);
-  state.volume = state.volume.plus(evnt.value);
-  state.usd = USDValue(evnt.blockTimestamp, evnt.blockNumber);
-  state.save();
-}

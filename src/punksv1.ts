@@ -3,25 +3,37 @@
  * @description Handles events from the CryptoPunksMarket contract and updates the subgraph accordingly.
  */
 
-import { BigInt, Bytes, log, store } from '@graphprotocol/graph-ts';
+import { BigInt, Bytes, ethereum, log, store } from '@graphprotocol/graph-ts';
 
-import { Account, Bid, Bundle, Event, Listing, Punk, TransactionExecutionContext, Transfer } from '../generated/schema';
+import { Account, Bid, TransactionExecutionContext, Event, Listing, Punk, Transfer, Bundle } from '../generated/schema';
 
 import {
-  PhunkOffered as PhunkOfferedEvent,
-  PhunkBidEntered as PhunkBidEntered,
-  PhunkBidWithdrawn as PhunkBidWithdrawnEvent,
-  PhunkBought as PhunkBoughtEvent,
-  PhunkNoLongerForSale as PunkNoLongerForSaleEvent,
-} from '../generated/CryptoPhunks/CryptoPhunks';
+  PunkOffered as PunkOfferedEvent,
+  PunkBidEntered as PunkBidEntered,
+  PunkBidWithdrawn as PunkBidWithdrawnEvent,
+  PunkBought as PunkBoughtEvent,
+  PunkNoLongerForSale as PunkNoLongerForSaleEvent,
+} from '../generated/CryptoPunksV1/CryptoPunksV1';
+
+import {
+  Assign,
+  PunkTransfer
+} from '../generated/CryptoPunksV1Token/CryptoPunksV1Token';
+
+import {
+  Transfer as WrappedTransfer
+} from '../generated/CryptoPunksV1WrappedToken/CryptoPunksV1WrappedToken';
+
 import { Transfer as BlurBiddingTransfer } from "../generated/BlurBiddingERC20/BlurBiddingERC20"
-import {
-  Transfer as PhunkTransfer
-} from '../generated/CryptoPhunks/CryptoPhunksToken';
 
-import { getFloorFromActiveListings, getGlobalId, getOrCreateAccount, getOrCreatePunk, getOrCreateState, loadPrevBidEvent, loadPrevSaleEvent, setPunkNoLongerForSale, updateOwnership } from './utils/helpers';
+import { getFloorFromActiveListings, getGlobalId, getOrCreateAccount, getOrCreatePunk, getOrCreateState, loadPrevBidEvent, loadPrevSaleEvent, setPunkNoLongerForSale, updateOwnership, updateSaleState } from './utils/helpers';
 import { BIGINT_ONE, BIGINT_ZERO, ONLY_ON_TX, ZERO_ADDRESS, washTrades } from './utils/constants';
 import { USDValue } from './utils/conversions';
+
+const TARGET_TOKEN = Bytes.fromHexString("0x282bdd42f4eb70e7a9d9f40c8fea0825b7f68c5d")!;
+const NATIVE_PLATFORM = 'punkv1';
+const WRAPPER_ADDRESS = '0x282bdd42f4eb70e7a9d9f40c8fea0825b7f68c5d'
+
 
 /**
  * Handles the Assign event.
@@ -62,29 +74,108 @@ export function handleAssign(event: AssignEvent): void {
 }
 */
 
-const TARGET_TOKEN = Bytes.fromHexString("0xf07468ead8cf26c752c676e43c814fee9c8cf402")!;
-const NATIVE_PLATFORM = 'notlarvalabs';
-
 
 let punkTransferTokenId: string;
+
+
+export function handleAssign(event: Assign): void {
+
+  if (ONLY_ON_TX != "" && event.transaction.hash.toHex() != ONLY_ON_TX) {
+    return
+  }  
+
+  let to = event.params.to.toHexString();
+  let from = ZERO_ADDRESS;
+
+  const tx = event.transaction.hash
+
+  handleTransferInner(event, tx, to, from, event.params.punkIndex, 'Assigned');
+}
+
+/**
+ * Handles the PunkTransfer event.
+ * @param event - The PunkTransferEvent object.
+ */
+export function handleTransfer(event: PunkTransfer): void {
+  if (ONLY_ON_TX != "" && event.transaction.hash.toHex() != ONLY_ON_TX) {
+    return
+  }
+
+  let to = event.params.to.toHexString();
+  let from = event.params.from.toHexString();
+
+  const tx = event.transaction.hash
+
+  let eventType = 'Transferred'
+
+  handleTransferInner(event, tx, to, from, event.params.punkIndex, eventType);
+  prepareThirdPartySale(event.transaction.hash, event.params.from, event.params.to, event.block.timestamp, event.params.punkIndex);  
+}
 
 
 /**
  * Handles the PunkTransfer event.
  * @param event - The PunkTransferEvent object.
  */
-export function handleTransfer(event: PhunkTransfer): void {
+export function handleWrappedTransfer(event: WrappedTransfer): void {
+  if (ONLY_ON_TX != "" && event.transaction.hash.toHex() != ONLY_ON_TX) {
+    return
+  }
 
   let to = event.params.to.toHexString();
   let from = event.params.from.toHexString();
 
-  let transfer = new Transfer(event.transaction.hash.toHexString());
+  const tx = event.transaction.hash
+  log.debug('handleWrappedTransfer {} {}', [tx.toHexString(), event.params.tokenId.toString()])
+
+  handleTransferInner(event, tx, to, from, event.params.tokenId, 'Transferred');
+  // gruik
+  prepareThirdPartySale(event.transaction.hash, event.params.from, event.params.to, event.block.timestamp, event.params.tokenId);  
+
+  const punk = getOrCreatePunk(event.params.tokenId.toString())
+  punk.wrapped = true
+  punk.save()
+}
+
+export function handleTransferInner(
+  event:ethereum.Event,
+  tx:Bytes, 
+  to:string, 
+  from:string, 
+  tokenId:BigInt,
+  eventType:string):void {
+  if (ONLY_ON_TX != "" && event.transaction.hash.toHex() != ONLY_ON_TX) {
+    return
+  }
+
+  if (from == ZERO_ADDRESS && eventType != 'Assigned') {
+    eventType = 'Wrapped'
+  } else if (from.toLowerCase() == TARGET_TOKEN.toHexString()) {
+    eventType = 'Unwrapped'
+  }
+
+  let transfer = new Transfer(tx.toHexString());
   transfer.to = to;
   transfer.from = from;
-  transfer.transactionHash = event.transaction.hash;
+  transfer.transactionHash = tx;
+  
+  /*
+  if (true || transfer.transactionHash.toHexString() == '0x560b87be91c9059a486567f03f237406f453880ac56078448f003ce9e3019ed3'
+      || transfer.transactionHash.toHexString() == '0x560b87be91c9059a486567f03f237406f453880ac56078448f003ce9e3019ed3'
+      || transfer.to.toLowerCase() == '0x516fc698fb46506aa983a14f40b30c908d86dc82'
+      || transfer.from.toLowerCase() == '0x516fc698fb46506aa983a14f40b30c908d86dc82') {
+        log.warning('maybe wrap from {} type {} to {} hash {} test1 {} test2 {}', [
+          from, eventType, to, transfer.transactionHash.toHexString(), 
+          (from == ZERO_ADDRESS).toString(), 
+          (from == TARGET_TOKEN.toHexString()).toString()
+        ])
+  }
+  */
+
+  transfer.tokenId = tokenId.toString();
   transfer.save();
 
-  punkTransferTokenId = event.params.tokenId.toString();
+  punkTransferTokenId = tokenId.toString();
 
   let fromAccount: Account = getOrCreateAccount(from);
   let toAccount: Account = getOrCreateAccount(to);
@@ -93,6 +184,12 @@ export function handleTransfer(event: PhunkTransfer): void {
   let punk = getOrCreatePunk(punkTransferTokenId);
 
   // Check if punk is wrapped
+  let isWrapped = false;
+  let isUnwrapped = false;
+  if (to == WRAPPER_ADDRESS) isWrapped = true;
+  if (from == WRAPPER_ADDRESS) isUnwrapped = true;
+  punk.wrapped = isWrapped;
+
   punk.save();
 
   let newOwnerIsBidder = false;
@@ -109,10 +206,9 @@ export function handleTransfer(event: PhunkTransfer): void {
   // Events
   let evntId = getGlobalId(event);
   let evnt = new Event(evntId);
-
-  evnt.type = 'Transferred';
-  evnt.tokenId = event.params.tokenId;
   evnt.platform = NATIVE_PLATFORM;
+  evnt.type = eventType;
+  evnt.tokenId = tokenId;
   evnt.fromAccount = fromAccount.id;
   evnt.toAccount = toAccount.id;
   evnt.value = BIGINT_ZERO;
@@ -146,21 +242,148 @@ export function handleTransfer(event: PhunkTransfer): void {
     fromAccount.id,
   );
 
-  //prepareThirdPartySale(event);
-  prepareThirdPartySale(event.transaction.hash, event.params.from, event.params.to, event.block.timestamp, event.params.tokenId);
 }
 
+export function prepareThirdPartySale(hash: Bytes, from: Bytes, to: Bytes, timestamp:BigInt, transferredTokenId:BigInt):void {
+  
+  const id = hash.toHexString()
+  
+  let ctx = TransactionExecutionContext.load(id)
+  
+  if (!ctx) {
+    // Cas 1: Transfer arrive avant OrderFulfilled
+    log.info(
+      "Transfer arrived BEFORE OrderFulfilled - Creating new context - TxHash: {}, TokenId: {}, From: {}, To: {}",
+      [
+        id,
+        transferredTokenId.toString(),
+        from.toHexString(),
+        to.toHexString()
+      ]
+    );
+    
+    ctx = new TransactionExecutionContext(id)
+    ctx.tokenIds = []
+
+    ctx.collection = TARGET_TOKEN;
+    ctx.paymentAmount = null;
+    ctx.paymentToken = Bytes.fromHexString("0x0000000000000000000000000000000000000000")!;
+    ctx.isBid = false;
+    ctx.from = from;
+    ctx.to = to;
+    ctx.timestamp = timestamp;
+    ctx.eventIds = [];
+    ctx.save();
+  } else {
+
+    // Éviter les doublons dans la liste des tokenIds
+    const tokenIds = ctx.tokenIds;
+    let tokenExists = false;
+    
+    // Vérifier si le tokenId est déjà dans la liste
+    for (let i = 0; i < tokenIds.length; i++) {
+      if (tokenIds[i].equals(transferredTokenId)) {
+        tokenExists = true;
+        break;
+      }
+    }
+    
+    // Ajouter le tokenId seulement s'il n'est pas déjà présent
+    if (!tokenExists) {
+      tokenIds.push(transferredTokenId);
+      ctx.tokenIds = tokenIds;
+    }
+    
+    ctx.save();
+
+    // Cas 2: Transfer arrive après OrderFulfilled
+    log.info(
+      "Transfer arrived AFTER OrderFulfilled - Updating context - TxHash: {}, TokenId: {}, From: {}, To: {}, ctx.eventIds: {}",
+      [
+        id,
+        transferredTokenId.toString(),
+        from.toHexString(),
+        to.toHexString(),
+        ctx.eventIds.length.toString()
+      ]
+    );
+    
+    // Si un Event ou Bundle a déjà été créé (eventId est présent dans le contexte),
+    // on le met à jour avec les adresses du Transfer
+    if (ctx.eventIds.length > 0) {
+      for (let i=0; i<ctx.eventIds.length; i++) {
+        const eventId = ctx.eventIds[i]
+        log.info(
+          "Updating existing entity with Transfer addresses - tx: {} EntityId: {}, From: {}, To: {}",
+          [
+            id,
+            eventId,
+            from.toHexString(),
+            to.toHexString()
+          ]
+        );
+        
+        // Première vérification: est-ce un Event?
+        let evnt = Event.load(eventId);
+        if (evnt) {
+          // Mise à jour des adresses avec celles du Transfer
+          evnt.fromAccount = from.toHexString();
+          evnt.toAccount = to.toHexString();
+
+          // update the value
+          let tokenCount: BigInt = ctx.tokenIds != null && ctx.tokenIds.length > 0
+                        ? BigInt.fromI32(ctx.tokenIds.length)
+                        : BigInt.fromI32(1);
+          
+          evnt.value = evnt.value.div(tokenCount);
+          log.warning("[PUNKV1] tx {} updating event {} with value {} / {}", [
+            hash.toHexString(),
+            eventId,
+            evnt.value.toString(),
+            tokenCount.toString()
+          ]);
+
+          evnt.save();
+          
+          log.info("Event successfully updated with Transfer addresses", []);
+        } else {
+          // Si ce n'est pas un Event, c'est peut-être un Bundle
+          let bundle = Bundle.load(eventId);
+          if (bundle) {
+            // Mise à jour des adresses du Bundle avec celles du Transfer
+            bundle.offerer = from;
+            bundle.buyer = to;
+            bundle.save();
+            
+            log.info("Bundle successfully updated with Transfer addresses", []);
+          } else {
+            log.error("Failed to load entity with id: {}", [eventId]);
+          }
+        }
+      }
+    }
+  }
+
+  // IMPORTANT: Les adresses du Transfer ERC-721 sont TOUJOURS prioritaires
+  // Elles remplacent celles définies dans OrderFulfilled, même si celui-ci 
+  // a déjà été traité et a créé un contexte
+  ctx.from = from;
+  ctx.to = to;
+
+  ctx.save();
+}
 
 let punkBoughtTokenId: string;
 /**
  * Handles the PunkBought event.
  * @param event - The PunkBoughtEvent object.
  */
-export function handlePhunkBought(event: PhunkBoughtEvent): void {
+export function handlePunkBought(event: PunkBoughtEvent): void {
   if (ONLY_ON_TX != "" && event.transaction.hash.toHex() != ONLY_ON_TX) {
     return
   }
-  punkBoughtTokenId = event.params.phunkIndex.toString();
+
+  punkBoughtTokenId = event.params.punkIndex.toString();
 
   let isWash = washTrades.includes(event.transaction.hash.toHexString());
 
@@ -201,9 +424,10 @@ export function handlePhunkBought(event: PhunkBoughtEvent): void {
   let evntId = getGlobalId(event);
   let evnt = new Event(evntId);
   evnt.type = 'Sale';
-  evnt.tokenId = event.params.phunkIndex;
   evnt.platform = NATIVE_PLATFORM;
+  evnt.tokenId = event.params.punkIndex;
   evnt.fromAccount = fromAccount.id;
+  evnt.isBid = bid !== null
   evnt.toAccount = toAccount.id;
   value = isWash ? BIGINT_ZERO : value;
   evnt.value = value;
@@ -212,32 +436,7 @@ export function handlePhunkBought(event: PhunkBoughtEvent): void {
   evnt.blockTimestamp = event.block.timestamp;
   evnt.transactionHash = event.transaction.hash;
   evnt.save();
-
-  // State
-  let state = getOrCreateState(event.block.timestamp);
-  let topSale = state.topSale;
-  let prevSaleEvent = loadPrevSaleEvent(topSale);
-
-  let prevEventSaleValue: BigInt;
-  if (prevSaleEvent && prevSaleEvent.value && prevSaleEvent.value.gt(BIGINT_ZERO)) {
-    prevEventSaleValue = prevSaleEvent.value;
-    if (value.gt(prevEventSaleValue)) state.topSale = evntId;
-  } else {
-    state.topSale = evntId;
-  }
-
-  let newActiveListings = state.activeListings;
-  if (newActiveListings.indexOf(punkBoughtTokenId) > -1) {
-    newActiveListings = newActiveListings.filter((id) => id != punkBoughtTokenId);
-  }
-  state.activeListings = newActiveListings;
-
-  let newFloor = getFloorFromActiveListings(state);
-  state.floor = newFloor;
-  state.sales = state.sales.plus(BIGINT_ONE);
-  state.volume = state.volume.plus(value);
-  state.usd = USDValue(event.block.timestamp, event.block.number);
-  state.save();
+  updateSaleState(evnt)
 }
 
 let punkOfferedTokenId: string;
@@ -245,8 +444,8 @@ let punkOfferedTokenId: string;
  * Handles the PunkOffered event.
  * @param event - The PunkOfferedEvent object.
  */
-export function handlePhunkOffered(event: PhunkOfferedEvent): void {
-  punkOfferedTokenId = event.params.phunkIndex.toString();
+export function handlePunkOffered(event: PunkOfferedEvent): void {
+  punkOfferedTokenId = event.params.punkIndex.toString();
 
   let fromAccount = getOrCreateAccount(event.transaction.from.toHexString());
   let toAccount = getOrCreateAccount(event.params.toAddress.toHexString());
@@ -279,7 +478,7 @@ export function handlePhunkOffered(event: PhunkOfferedEvent): void {
   let evnt = new Event(evntId);
   evnt.platform = NATIVE_PLATFORM;
   evnt.type = 'Offered';
-  evnt.tokenId = event.params.phunkIndex;
+  evnt.tokenId = event.params.punkIndex;
 
   evnt.fromAccount = fromAccount.id;
   evnt.toAccount = toAccount.id;
@@ -304,11 +503,11 @@ export function handlePhunkOffered(event: PhunkOfferedEvent): void {
 
   let listingVal = event.params.minValue;
   if (
-    toAccount.id != ZERO_ADDRESS &&
-    listingVal.notEqual(BIGINT_ZERO) &&
+    toAccount.id != ZERO_ADDRESS && 
+    listingVal.notEqual(BIGINT_ZERO) && 
     listingVal.lt(state.floor)
   ) {
-    state.floor = listingVal;
+    state.floor = listingVal;  
   }
   state.usd = USDValue(event.block.timestamp, event.block.number);
 
@@ -320,8 +519,8 @@ let punkBidEnteredTokenId: string;
  * Handles the PunkBidEntered event.
  * @param event - The PunkBidEnteredEvent object.
  */
-export function handlePhunkBidEntered(event: PhunkBidEntered): void {
-  punkBidEnteredTokenId = event.params.phunkIndex.toString();
+export function handlePunkBidEntered(event: PunkBidEntered): void {
+  punkBidEnteredTokenId = event.params.punkIndex.toString();
 
   let fromAccount = getOrCreateAccount(event.params.fromAddress.toHexString());
 
@@ -345,10 +544,9 @@ export function handlePhunkBidEntered(event: PhunkBidEntered): void {
   // Events
   let evntId = getGlobalId(event);
   let evnt = new Event(evntId);
-
-  evnt.type = 'BidEntered';
   evnt.platform = NATIVE_PLATFORM;
-  evnt.tokenId = event.params.phunkIndex;
+  evnt.type = 'BidEntered';
+  evnt.tokenId = event.params.punkIndex;
 
   evnt.fromAccount = fromAccount.id;
   evnt.toAccount = ZERO_ADDRESS;
@@ -385,11 +583,12 @@ let punkBidWithdrawnTokenId: string;
  * Handles the PunkBidWithdrawn event.
  * @param event - The PunkBidWithdrawnEvent object.
  */
-export function handlePhunkBidWithdrawn(event: PhunkBidWithdrawnEvent): void {
+export function handlePunkBidWithdrawn(event: PunkBidWithdrawnEvent): void {
   if (ONLY_ON_TX != "" && event.transaction.hash.toHex() != ONLY_ON_TX) {
     return
   }
-  punkBidWithdrawnTokenId = event.params.phunkIndex.toString();
+  
+  punkBidWithdrawnTokenId = event.params.punkIndex.toString();
 
   let fromAccount = getOrCreateAccount(event.params.fromAddress.toHexString());
 
@@ -402,7 +601,7 @@ export function handlePhunkBidWithdrawn(event: PhunkBidWithdrawnEvent): void {
   let evnt = new Event(evntId);
   evnt.platform = NATIVE_PLATFORM;
   evnt.type = 'BidWithdrawn';
-  evnt.tokenId = event.params.phunkIndex;
+  evnt.tokenId = event.params.punkIndex;
 
   evnt.fromAccount = fromAccount.id;
   evnt.toAccount = ZERO_ADDRESS;
@@ -422,8 +621,8 @@ let punkNoLongerForSaleTokenId: string;
  * Handles the PunkNoLongerForSale event.
  * @param event - The PunkNoLongerForSaleEvent object.
  */
-export function handlePhunkNoLongerForSale(event: PunkNoLongerForSaleEvent): void {
-  punkNoLongerForSaleTokenId = event.params.phunkIndex.toString();
+export function handlePunkNoLongerForSale(event: PunkNoLongerForSaleEvent): void {
+  punkNoLongerForSaleTokenId = event.params.punkIndex.toString();
 
   setPunkNoLongerForSale(punkNoLongerForSaleTokenId);
 
@@ -440,10 +639,9 @@ export function handlePhunkNoLongerForSale(event: PunkNoLongerForSaleEvent): voi
     // Events
     let evntId = getGlobalId(event);
     let evnt = new Event(evntId);
-
-    evnt.type = 'OfferWithdrawn';
-    evnt.tokenId = event.params.phunkIndex;
     evnt.platform = NATIVE_PLATFORM;
+    evnt.type = 'OfferWithdrawn';
+    evnt.tokenId = event.params.punkIndex;
 
     evnt.fromAccount = ZERO_ADDRESS;
     evnt.toAccount = ZERO_ADDRESS;
@@ -476,123 +674,3 @@ export function handlePhunkNoLongerForSale(event: PunkNoLongerForSaleEvent): voi
 }
 
 
-export function prepareThirdPartySale(hash: Bytes, from: Bytes, to: Bytes, timestamp:BigInt, transferredTokenId:BigInt):void {
-
-  const id = hash.toHexString()
-
-  let ctx = TransactionExecutionContext.load(id)
-
-  if (!ctx) {
-    // Cas 1: Transfer arrive avant OrderFulfilled
-    log.info(
-        "Transfer arrived BEFORE OrderFulfilled - Creating new context - TxHash: {}, TokenId: {}, From: {}, To: {}",
-        [
-          id,
-          transferredTokenId.toString(),
-          from.toHexString(),
-          to.toHexString()
-        ]
-    );
-
-    ctx = new TransactionExecutionContext(id)
-    ctx.tokenIds = []
-
-    ctx.collection = TARGET_TOKEN;
-    ctx.paymentAmount = null;
-    ctx.paymentToken = Bytes.fromHexString("0x0000000000000000000000000000000000000000")!;
-    ctx.isBid = false;
-    ctx.from = from;
-    ctx.to = to;
-    ctx.timestamp = timestamp;
-    ctx.eventIds = [];
-    ctx.save();
-  } else {
-
-    // Éviter les doublons dans la liste des tokenIds
-    const tokenIds = ctx.tokenIds;
-    let tokenExists = false;
-
-    // Vérifier si le tokenId est déjà dans la liste
-    for (let i = 0; i < tokenIds.length; i++) {
-      if (tokenIds[i].equals(transferredTokenId)) {
-        tokenExists = true;
-        break;
-      }
-    }
-
-    // Ajouter le tokenId seulement s'il n'est pas déjà présent
-    if (!tokenExists) {
-      tokenIds.push(transferredTokenId);
-      ctx.tokenIds = tokenIds;
-    }
-
-    ctx.save();
-
-    // Cas 2: Transfer arrive après OrderFulfilled
-    log.info(
-        "Transfer arrived AFTER OrderFulfilled - Updating context - TxHash: {}, TokenId: {}, From: {}, To: {}, ctx.eventIds: {}",
-        [
-          id,
-          transferredTokenId.toString(),
-          from.toHexString(),
-          to.toHexString(),
-          ctx.eventIds.length.toString()
-        ]
-    );
-
-    // Si un Event ou Bundle a déjà été créé (eventId est présent dans le contexte),
-    // on le met à jour avec les adresses du Transfer
-    if (ctx.eventIds.length > 0) {
-      for (let i = 0; i < ctx.eventIds.length; i++) {
-        const eventId = ctx.eventIds[i]
-        log.info(
-            "Updating existing entity with Transfer addresses - tx: {} EntityId: {}, From: {}, To: {}",
-            [
-              id,
-              eventId,
-              from.toHexString(),
-              to.toHexString()
-            ]
-        );
-
-        // Première vérification: est-ce un Event?
-        let evnt = Event.load(eventId);
-        if (evnt) {
-          // Mise à jour des adresses avec celles du Transfer
-          evnt.fromAccount = from.toHexString();
-          evnt.toAccount = to.toHexString();
-
-          // update the value
-          let tokenCount: BigInt = ctx.tokenIds != null && ctx.tokenIds.length > 0
-              ? BigInt.fromI32(ctx.tokenIds.length)
-              : BigInt.fromI32(1);
-
-          evnt.value = evnt.value.div(tokenCount);
-          log.warning("[PUNKV1] tx {} updating event {} with value {} / {}", [
-            hash.toHexString(),
-            eventId,
-            evnt.value.toString(),
-            tokenCount.toString()
-          ]);
-
-          evnt.save();
-
-          log.info("Event successfully updated with Transfer addresses", []);
-        } else {
-          // Si ce n'est pas un Event, c'est peut-être un Bundle
-          let bundle = Bundle.load(eventId);
-          if (bundle) {
-            // Mise à jour des adresses du Bundle avec celles du Transfer
-            bundle.offerer = from;
-            bundle.buyer = to;
-            bundle.save();
-
-            log.info("Bundle successfully updated with Transfer addresses", []);
-          } else {
-            log.error("Failed to load entity with id: {}", [eventId]);
-          }
-        }
-      }
-    }
-  }
-}

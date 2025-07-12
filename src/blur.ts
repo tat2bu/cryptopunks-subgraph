@@ -125,7 +125,6 @@ export function handleExecution721Packed(event: Execution721Packed): void {
     eventIds.push(evnt.id)
     context.eventIds = eventIds
     context.save()
-
     log.debug('added event id {} to context {} —> {}', [
         evnt.id,
         context.id,
@@ -133,7 +132,6 @@ export function handleExecution721Packed(event: Execution721Packed): void {
     ])
 
     updateSaleState(evnt)
-
 }
 
 export function handleTransfer(event: BlurTransfer): void {
@@ -168,7 +166,6 @@ export function handleTransfer(event: BlurTransfer): void {
                         : BigInt.fromI32(1);
 
                     evnt.value = ctx.paymentAmount!.div(tokenCount);
-
                     log.debug("HERE {}/{} Event {} successfully updated with paymentAmount {}", [
                         tokenCount.toString(),
                         ctx.tokenIds!.length.toString(),
