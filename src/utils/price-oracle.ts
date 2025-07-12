@@ -4,7 +4,7 @@
  */
 
 import { BigInt, Address } from "@graphprotocol/graph-ts"
-import { AggregatorV3Interface } from "../../generated/CryptoPunksMarket/AggregatorV3Interface"
+import { AggregatorV3Interface } from "../../generated/CryptoPunksV1/AggregatorV3Interface"
 import { EACAggregatorProxyStartBlock } from "./constants"
 
 /**

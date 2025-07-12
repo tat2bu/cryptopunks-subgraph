@@ -19,6 +19,7 @@ export let BIGINT_ZERO = BigInt.fromI32(0);
 
 /** BigInt constant for one */
 export let BIGINT_ONE = BigInt.fromI32(1);
+// export const TARGET_TOKEN = Bytes.fromHexString("0x282bdd42f4eb70e7a9d9f40c8fea0825b7f68c5d") as Bytes;
 
 /** Array of known wash trade transaction hashes to filter out */
 export let washTrades = [

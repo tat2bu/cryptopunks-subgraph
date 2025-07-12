@@ -3,17 +3,20 @@
  * @description This file contains utility functions for the CryptoPunks subgraph.
  */
 
-import { BigInt, Bytes, ethereum, log, store } from '@graphprotocol/graph-ts';
+import { Address, BigInt, Bytes, ethereum, log, store } from '@graphprotocol/graph-ts';
 
 import { Account, Bid, Event, Listing, Punk, State, Transfer } from '../../generated/schema';
 
-import { Transfer as TransferEvent, } from '../../generated/CryptoPunksMarket/CryptoPunksMarket';
+// import { Transfer as TransferEvent, } from '../../generated/CryptoPhunks/CryptoPhunks';
 
 import { timestampToId } from './date-utils';
 import {BIGINT_ZERO, C721_WRAPPER_ADDRESS, WRAPPER_ADDRESS, ZERO_ADDRESS} from './constants';
 import { BIGINT_ONE } from './constants';
-import { USDValue } from '../utils/conversions';
 
+import {
+  PunkBought as PunkBoughtEvent,
+} from '../../generated/CryptoPunksV1/CryptoPunksV1';
+import { USDValue } from './conversions';
 /**
  * Generates a global ID for an event.
  * @param event - The ethereum event.
@@ -32,6 +35,7 @@ export function getGlobalId(event: ethereum.Event): string {
  * @param event - The TransferEvent.
  * @returns The Transfer entity.
  */
+/*
 export function getOrCreateTransfer(event: TransferEvent): Transfer {
 	let transferId = event.transaction.hash.toHexString();
 
@@ -46,6 +50,7 @@ export function getOrCreateTransfer(event: TransferEvent): Transfer {
 
 	return transfer;
 }
+*/
 
 /**
  * Gets or creates an Account entity.
@@ -261,6 +266,40 @@ export function loadPrevSaleEvent(topSale: string | null): Event | null {
   return Event.load(topSale as string) || null;
 }
 
+export function updateSaleState(evnt: Event): void {
+  // State
+  let state = getOrCreateState(evnt.blockTimestamp);
+  let topSale = state.topSale;
+  let prevSaleEvent = loadPrevSaleEvent(topSale);
+
+  let prevEventSaleValue: BigInt;
+  if (prevSaleEvent && prevSaleEvent.value && prevSaleEvent.value.gt(BIGINT_ZERO)) {
+    prevEventSaleValue = prevSaleEvent.value;
+    if (evnt.value.gt(prevEventSaleValue)) state.topSale = evnt.id;
+  } else {
+    state.topSale = evnt.id;
+  }
+
+  // Avoid direct array assignment to prevent referencing previous state arrays.
+  let tokenId = evnt.tokenId.toString();
+  let currentActiveListings = state.activeListings;
+  let newActiveListings: string[] = [];
+  for (let i = 0; i < currentActiveListings.length; i++) {
+    if (currentActiveListings[i] != tokenId) {
+      newActiveListings.push(currentActiveListings[i]);
+    }
+  }
+  state.activeListings = newActiveListings;
+
+
+  let newFloor = getFloorFromActiveListings(state);
+  state.floor = newFloor;
+  state.sales = state.sales.plus(BIGINT_ONE);
+  state.volume = state.volume.plus(evnt.value);
+  state.usd = USDValue(evnt.blockTimestamp, evnt.blockNumber);
+  state.save();
+}
+
 /**
  * Calculates the floor price from active listings.
  * @param state - The State entity.
@@ -325,38 +364,4 @@ export function hexToDecimal(hexString: string): BigInt {
   }
   
   return decimal;
-}
-
-export function updateSaleState(evnt: Event): void {
-  // State
-  let state = getOrCreateState(evnt.blockTimestamp);
-  let topSale = state.topSale;
-  let prevSaleEvent = loadPrevSaleEvent(topSale);
-
-  let prevEventSaleValue: BigInt;
-  if (prevSaleEvent && prevSaleEvent.value && prevSaleEvent.value.gt(BIGINT_ZERO)) {
-    prevEventSaleValue = prevSaleEvent.value;
-    if (evnt.value.gt(prevEventSaleValue)) state.topSale = evnt.id;
-  } else {
-    state.topSale = evnt.id;
-  }
-
-  // Avoid direct array assignment to prevent referencing previous state arrays.
-  let tokenId = evnt.tokenId.toString();
-  let currentActiveListings = state.activeListings;
-  let newActiveListings: string[] = [];
-  for (let i = 0; i < currentActiveListings.length; i++) {
-    if (currentActiveListings[i] != tokenId) {
-      newActiveListings.push(currentActiveListings[i]);
-    }
-  }
-  state.activeListings = newActiveListings;
-
-
-  let newFloor = getFloorFromActiveListings(state);
-  state.floor = newFloor;
-  state.sales = state.sales.plus(BIGINT_ONE);
-  state.volume = state.volume.plus(evnt.value);
-  state.usd = USDValue(evnt.blockTimestamp, evnt.blockNumber);
-  state.save();
 }

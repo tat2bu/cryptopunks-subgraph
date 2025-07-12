@@ -3,7 +3,7 @@ import { Bundle, FeeRecipient, Event, TransactionExecutionContext } from "../gen
 import { Address, BigInt, Bytes, log } from "@graphprotocol/graph-ts"
 import { USDValue } from "./utils/conversions";
 import { getGlobalId, updateSaleState } from "./utils/helpers";
-import { TARGET_TOKENS, ZERO_ADDRESS } from "./utils/constants";
+import { ONLY_ON_TX, TARGET_TOKENS, ZERO_ADDRESS } from "./utils/constants";
 
 export function handleOrderFulfilled(event: OrderFulfilled): void {
 
@@ -21,19 +21,19 @@ export function handleOrderFulfilled(event: OrderFulfilled): void {
   //let isBid = offer.length > 0 && (offer[0].itemType == 2 || offer[0].itemType == 3);
   let isBid = consideration.filter(c => c.recipient.toHexString().toLowerCase() === '0x0000a26b00c1F0DF003000390027140000fAa719'.toLowerCase()).length > 0;
 
-  log.warning("isBid triggered: tx = {}, isBid = {}", [
+  log.warning("[SEAPORT] isBid triggered: tx = {}, isBid = {}, index = {}", [
     event.transaction.hash.toHexString(),
     isBid.toString(),
+    event.logIndex.toString()
   ]);
 
   if (isBid && event.params.zone && !event.params.zone.equals(Address.zero())) {
-    /*
-        log.warning("Ignoring zone {} for tx and event {} {}", [
-            event.params.zone.toHexString().toLowerCase(),
-            event.transaction.hash.toHex(),
-            event.logIndex.toString()
-        ])
-    */
+  
+      log.warning("[SEAPORT] Ignoring zone {} for tx and event {} {}", [
+          event.params.zone.toHexString().toLowerCase(),
+          event.transaction.hash.toHex(),
+          event.logIndex.toString()
+      ])
     // do not index fees transactions
     return
   }
@@ -79,6 +79,12 @@ export function handleOrderFulfilled(event: OrderFulfilled): void {
     }
   }
   if (!matchFound) {
+    if (ONLY_ON_TX != "") {
+      log.warning("[SEAPORT] No match found for tx = {} index = {}", [
+        event.transaction.hash.toHexString(),
+        event.logIndex.toString()
+      ]);
+    }
     return;
   }
 
@@ -103,8 +109,9 @@ export function handleOrderFulfilled(event: OrderFulfilled): void {
 
   if (!context) {
 
-    log.warning("creatingContext for: tx = {}", [
-      event.transaction.hash.toHexString()
+    log.warning("[SEAPORT] creatingContext for: tx = {}, index = {}", [
+      event.transaction.hash.toHexString(),
+      event.logIndex.toString()
     ]);
     context = new TransactionExecutionContext(event.transaction.hash.toHexString())
     context.tokenIds = []
@@ -123,9 +130,10 @@ export function handleOrderFulfilled(event: OrderFulfilled): void {
     for (let i = 0; i < nftIds.length; i++) {
       if (context.tokenIds.includes(nftIds[i])) {
 
-        log.warning("handleOrderFulfilled token already indexed: tx = {}, token = {}", [
-          event.transaction.hash.toString(),
+        log.warning("[SEAPORT] handleOrderFulfilled token already indexed: tx = {}, token = {}, index = {}", [
+          event.transaction.hash.toHexString(),
           nftIds[i].toString(),
+          event.logIndex.toString()
         ]);
         return;
       }
@@ -133,10 +141,11 @@ export function handleOrderFulfilled(event: OrderFulfilled): void {
 
   }
 
-  log.warning("handleOrderFulfilled triggered: tx = {}, isBid = {}, amount = {} ", [
-    event.transaction.hash.toString(),
+  log.warning("[SEAPORT] handleOrderFulfilled triggered: tx = {}, isBid = {}, amount = {}, nfts = {} ", [
+    event.transaction.hash.toHexString(),
     isBid.toString(),
-    paymentAmount.toString()
+    paymentAmount.toString(),
+    nfts.length.toString()
   ]);
 
 
@@ -172,22 +181,22 @@ export function handleOrderFulfilled(event: OrderFulfilled): void {
     evnt.isBid = isBid
     //return;
 
-    log.warning("context was existing for: tx = {} from = {} to = {}", [
+    log.warning("[SEAPORT] context was existing for: tx = {} from = {} to = {} amount = {}", [
       event.transaction.hash.toHexString(),
       context!.from.toHexString(),
-      context!.to.toHexString()
+      context!.to.toHexString(),
+      paymentAmount.toString()
     ]);
     evnt.value = paymentAmount;
+    
     evnt.usd = USDValue(event.block.timestamp, event.block.number);
     evnt.blockNumber = event.block.number;
     evnt.blockTimestamp = event.block.timestamp;
     evnt.transactionHash = event.transaction.hash;
-    
     const eventIds = context.eventIds
     eventIds.push(evnt.id)
     context.eventIds = eventIds
     context.save()
-    
     evnt.save();
   } else {
     let bundle = new Bundle(event.transaction.hash.toHex());

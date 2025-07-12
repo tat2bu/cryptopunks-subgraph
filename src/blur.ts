@@ -97,6 +97,17 @@ export function handleExecution721Packed(event: Execution721Packed): void {
     } else {
         evnt.value = price.div(tokenCount);
     }
+
+
+    
+    log.debug("HERE {}/{} Event {} successfully updated with paymentAmount {}", [
+        tokenCount.toString(),
+        context.tokenIds!.length.toString(),
+        evnt.id,
+        evnt.value.toString()
+    ]);
+    
+    
     evnt.usd = USDValue(event.block.timestamp, event.block.number);
     evnt.blockNumber = event.block.number;
     evnt.blockTimestamp = event.block.timestamp;
