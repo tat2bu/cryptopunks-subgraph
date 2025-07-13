@@ -6,6 +6,7 @@
     "build": "graph build",
     "deploy": "graph deploy --node https://api.studio.thegraph.com/deploy/ cryptopunks_eth",
     "preprocess:phunks": "node src/preprocess.js --template=subgraph-phunks.template.yaml --output=subgraph-phunks.yaml",
+    "preprocess:punksv2": "node src/preprocess.js --template=subgraph-punksv2.template.yaml --output=subgraph-punksv2.yaml",
     "deploy:phunks": "graph deploy phunks --access-token='804e94b1020f3e2fe0b846f5bdc7a5f5' subgraph-phunks.yaml",
     "create-local": "graph create --node http://localhost:8020/ cryptopunks_eth",
     "remove-local": "graph remove --node http://localhost:8020/ cryptopunks_eth",

@@ -8,7 +8,8 @@ dataSources:
     source:
       abi: CryptoPunksMarket
       address: "0xb47e3cd837ddf8e4c57f05d70ab865de6e193bbb"
-      startBlock: 3914495 # Mainnet punk marketplace creation
+      startBlock: 3914495
+      # 3914495 # Mainnet punk marketplace creation
       # startBlock: 19029676 # C721 contract creation
       # startBlock: 21973948 # test punk sale
     mapping:
@@ -44,7 +45,7 @@ dataSources:
           handler: handlePunkBought
         - event: PunkNoLongerForSale(indexed uint256)
           handler: handlePunkNoLongerForSale
-      file: ./src/crypto-punks-market.ts
+      file: ./src/crypto-punks.ts
 
 
   - kind: ethereum
@@ -57,7 +58,8 @@ dataSources:
       # 0x000000000000003607fce1ac9e043a86675c5c2f # C721 wrapper 
       # 0x6ba6f2207e343923ba692e5cae646fb0f566db8d # v1 original
       # 0x759c6C1923910930C18ef490B3c3DbeFf24003cE # punk market
-      startBlock: 14022431 # Mainnet
+      startBlock: 3914495
+      # startBlock: 14022431 # Mainnet
       # startBlock: 19029676 # C721 contract creation
       # startBlock: 3842489 # Mainnet
       # startBlock: 14022431 # Mainnet wrapper creation
@@ -82,7 +84,7 @@ dataSources:
       eventHandlers:
         - event: Transfer(indexed address,indexed address,indexed uint256)
           handler: handleC721WrappedTransfer
-      file: ./src/crypto-punks-market.ts      
+      file: ./src/crypto-punks.ts      
 
 
   - kind: ethereum
@@ -91,7 +93,8 @@ dataSources:
     source:
       abi: WrappedPunks
       address: "0xb7f7f6c52f2e2fdb1963eab30438024864c313f6" # wrapper V2
-      startBlock: 14022431 # Mainnet wrapper creation
+      startBlock: 3914495
+      # startBlock: 14022431 # Mainnet wrapper creation
       # startBlock: 19029676 # C721 contract creation
     mapping:
       kind: ethereum/events
@@ -113,7 +116,7 @@ dataSources:
       eventHandlers:
         - event: Transfer(indexed address,indexed address,indexed uint256)
           handler: handleWrappedTransfer
-      file: ./src/crypto-punks-market.ts      
+      file: ./src/crypto-punks.ts      
 
 
   - kind: ethereum/contract
@@ -123,7 +126,8 @@ dataSources:
       address: "0x0000000000a39bb272e79075ade125fd351887ac"
       abi: BlurBiddingERC20
       # startBlock: 14066948
-      startBlock: 16108399 # blur bidding contract creation
+      startBlock: 3914495
+      # startBlock: 16108399 # blur bidding contract creation
       # startBlock: 19029676 # C721 contract creation
       # startBlock: 16108399
       # startBlock: 19442152 # seaport 1.6 creation
@@ -150,7 +154,8 @@ dataSources:
     source:
       address: "0xb2ecfe4e4d61f8790bbb9de2d1259b9e2410cea5" # adresse du BlurExchange v2
       abi: BlurExchange
-      startBlock: 17603892 # blur exchange v2 contract creation
+      startBlock: 3914495
+      # startBlock: 17603892 # blur exchange v2 contract creation
       # startBlock: 19029676 # C721 contract creation
       # startBlock: 14066948
       # startBlock: 17603892
@@ -185,7 +190,8 @@ dataSources:
       abi: Seaport16
       # startBlock: 19442152
       # startBlock: 22331156
-      startBlock: 19442152 # seaport 1.6 creation
+      startBlock: 3914495
+      # startBlock: 19442152 # seaport 1.6 creation
       # startBlock: 19029676 # C721 contract creation
       # startBlock: 22434014 # test blur phunk
       # startBlock: 12674389 # cryptophunks contract creation
@@ -213,7 +219,8 @@ dataSources:
     source:
       address: "0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC"
       abi: Seaport15
-      startBlock: 17129405 # seaport 1.5 contract creation
+      startBlock: 3914495
+      # startBlock: 17129405 # seaport 1.5 contract creation
       # startBlock: 17697675 # seaport 1.5 punk v1 example
       # startBlock: 17164831 # seaport 1.4 punk v1 example
       # startBlock: 16169914 # seaport 1.1 punk v1 example
@@ -253,7 +260,8 @@ dataSources:
     source:
       address: "0x00000000000001ad428e4906aE43D8F9852d0dD6"
       abi: Seaport14
-      startBlock: 16655960 # seaport 1.4 contract creation
+      startBlock: 3914495
+      # startBlock: 16655960 # seaport 1.4 contract creation
       # startBlock: 17697675 # seaport 1.5 punk v1 example
       # startBlock: 17164831 # seaport 1.4 punk v1 example
       # startBlock: 16169914 # seaport 1.1 punk v1 example
@@ -292,7 +300,8 @@ dataSources:
     source:
       address: "0x00000000006c3852cbEf3e08E8dF289169EdE581"
       abi: Seaport11
-      startBlock: 14946474 # seaport 1.1 contract creation
+      # startBlock: 14946474 # seaport 1.1 contract creation
+      startBlock: 3914495
       # startBlock: 17697675 # seaport 1.5 punk v1 example
       # startBlock: 17164831 # seaport 1.4 punk v1 example
       # startBlock: 16169914 # seaport 1.1 punk v1 example
@@ -331,7 +340,8 @@ dataSources:
     source:
       address: "0x7Be8076f4EA4A4AD08075C2508e481d6C946D12b"
       abi: WyvernExchange
-      startBlock: 5774644 # wyvern contract creation
+      # startBlock: 5774644 # wyvern contract creation
+      startBlock: 3914495
       # startBlock: 17697675 # seaport 1.5 punk v1 example
       # startBlock: 17164831 # seaport 1.4 punk v1 example
       # startBlock: 16169914 # seaport 1.1 punk v1 example

@@ -2,7 +2,7 @@ const fs = require('fs');
 
 // Defaults
 let templateFile = 'subgraph.template.yaml';
-let outputFile = 'subgraph.yaml';
+let outputFile = 'subgraph.punksv2.template.yaml';
 const variables = {};
 
 // Parse CLI args
