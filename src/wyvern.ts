@@ -13,9 +13,11 @@ export function handleOrdersMatched(event: OrdersMatched): void {
   let context = TransactionExecutionContext.load(event.transaction.hash.toHexString());    
 
   if (context == null) {
+    /*
     log.warning("context was null for: tx = {}", [
       event.transaction.hash.toHexString()
     ]);
+    */
     return;
   }
 
@@ -25,6 +27,12 @@ export function handleOrdersMatched(event: OrdersMatched): void {
 
   evnt.type = 'Sale';
   evnt.platform = 'opensea';
+  if (context!.tokenIds.length == 0) {
+    log.warning("context.tokenIds was empty for: tx = {}", [
+      event.transaction.hash.toHexString()
+    ]);
+    return;
+  }
   evnt.tokenId = context!.tokenIds[0]!;
   evnt.fromAccount = context!.from.toHexString();
   evnt.toAccount = context!.to.toHexString();
