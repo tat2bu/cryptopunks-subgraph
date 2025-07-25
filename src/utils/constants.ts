@@ -28,10 +28,13 @@ export let washTrades = [
 ];
 
 // export const ONLY_ON_TX:string = "0xe0f91066dec4acedd280a2d1d6d8a3e81e8e66664036bba2dc933301968f72fb";
+// export const ONLY_ON_TX:string = "0x35f4fa6999e4e050d5c9d1efb7fd810071f97ed3835ef3b2b9c8f63ac6f5e115";
 export const ONLY_ON_TX:string = "";
 // export const ONLY_ON_TX:string = "0xf4bf0d474fb8fcaa069799e754ad9a6fbd4b7a46eb2d02963f51468521af7121";
 
 export const TARGET_TOKENS = [
-  Bytes.fromHexString("0xb7f7f6c52f2e2fdb1963eab30438024864c313f6")!,
-  Bytes.fromHexString("0x000000000000003607fce1ac9e043a86675c5c2f")!,
+  // Bytes.fromHexString("0xb7f7f6c52f2e2fdb1963eab30438024864c313f6")!, // punkv2 erc721
+  // Bytes.fromHexString("0x000000000000003607fce1ac9e043a86675c5c2f")!, // punkv2 c721
+  Bytes.fromHexString("0xf07468ead8cf26c752c676e43c814fee9c8cf402")!, // phunk
+  // Bytes.fromHexString("0x282bdd42f4eb70e7a9d9f40c8fea0825b7f68c5d")!, // punkv1
 ];
