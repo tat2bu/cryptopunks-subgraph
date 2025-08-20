@@ -22,7 +22,7 @@ import {
   PunkTransfer,
 } from '../generated/CryptoPunksMarket/CryptoPunksMarket';
 
-import { getFloorFromActiveListings, getGlobalId, getOrCreateAccount, getOrCreatePunk, getOrCreateState, loadPrevBidEvent, loadPrevSaleEvent, setPunkNoLongerForSale, updateOwnership } from './utils/helpers';
+import { getFloorFromActiveListings, getGlobalId, getOrCreateAccount, getOrCreatePunk, getOrCreateState, loadPrevBidEvent, loadPrevSaleEvent, setPunkNoLongerForSale, updateOwnership, shouldUpdateOwnership } from './utils/helpers';
 import { BIGINT_ONE, BIGINT_ZERO, C721_WRAPPER_ADDRESS, TARGET_TOKENS, WRAPPER_ADDRESS, ZERO_ADDRESS, washTrades } from './utils/constants';
 import { USDValue } from './utils/conversions';
 
@@ -159,13 +159,21 @@ export function handlePunkTransfer(event: PunkTransferEvent): void {
 
   evnt.save();
 
-  updateOwnership(
-    event.transaction.hash,
-    event.block.timestamp,
-    punkTransferTokenId,
-    toAccount.id,
-    fromAccount.id,
-  );
+  // FIX: Avoid double counting ownership updates when wrapper contracts are involved
+  // The wrapper contract handlers (handleWrappedTransfer, handleC721WrappedTransfer) 
+  // will handle updateOwnership for wrapper-related transfers
+  const involvesWrapper = (from == WRAPPER_ADDRESS || to == WRAPPER_ADDRESS || 
+                          from == C721_WRAPPER_ADDRESS || to == C721_WRAPPER_ADDRESS);
+  
+  if (!involvesWrapper) {
+    updateOwnership(
+      event.transaction.hash,
+      event.block.timestamp,
+      punkTransferTokenId,
+      toAccount.id,
+      fromAccount.id,
+    );
+  }
 }
 
 let punkBoughtTokenId: string;
@@ -495,15 +503,21 @@ export function handlePunkNoLongerForSale(event: PunkNoLongerForSaleEvent): void
  * @param event - The PunkTransferEvent object.
  */
 export function handleWrappedTransfer(event: WrappedTransfer): void {
-  prepareThirdPartySale(event);
+  const fromAddress = event.params.from.toHexString();
+  const toAddress = event.params.to.toHexString();
+  
+  // Ne traiter que les transferts qui affectent la propriété réelle
+  if (shouldUpdateOwnership(fromAddress, toAddress)) {
+    prepareThirdPartySale(event);
 
-  updateOwnership(
-    event.transaction.hash,
-    event.block.timestamp,
-    event.params.tokenId.toString(),
-    event.params.to.toHexString(),
-    event.params.from.toHexString()
-  );
+    updateOwnership(
+      event.transaction.hash,
+      event.block.timestamp,
+      event.params.tokenId.toString(),
+      toAddress,
+      fromAddress
+    );
+  }
 }
 
 /**
@@ -511,15 +525,21 @@ export function handleWrappedTransfer(event: WrappedTransfer): void {
  * @param event - The PunkTransferEvent object.
  */
 export function handleC721WrappedTransfer(event: WrappedTransfer): void {
-  prepareThirdPartySale(event);
+  const fromAddress = event.params.from.toHexString();
+  const toAddress = event.params.to.toHexString();
+  
+  // Ne traiter que les transferts qui affectent la propriété réelle
+  if (shouldUpdateOwnership(fromAddress, toAddress)) {
+    prepareThirdPartySale(event);
 
-  updateOwnership(
-    event.transaction.hash,
-    event.block.timestamp,
-    event.params.tokenId.toString(),
-    event.params.to.toHexString(),
-    event.params.from.toHexString()
-  );
+    updateOwnership(
+      event.transaction.hash,
+      event.block.timestamp,
+      event.params.tokenId.toString(),
+      toAddress,
+      fromAddress
+    );
+  }
 }
 
 
