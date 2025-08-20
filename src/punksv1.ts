@@ -293,7 +293,7 @@ export function prepareThirdPartySale(hash: Bytes, from: Bytes, to: Bytes, times
       tokenIds.push(transferredTokenId);
       ctx.tokenIds = tokenIds;
     }
-    
+    ctx.from = from;
     ctx.save();
 
     // Cas 2: Transfer arrive après OrderFulfilled

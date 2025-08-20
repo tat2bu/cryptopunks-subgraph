@@ -591,7 +591,7 @@ export function prepareThirdPartySale(event: WrappedTransfer):void {
         tokenIds.push(transferredTokenId);
         ctx.tokenIds = tokenIds;
     }
-    
+    ctx.from = event.params.from;
     ctx.save();
 
     // Cas 2: Transfer arrive après OrderFulfilled
