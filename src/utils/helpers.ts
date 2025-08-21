@@ -170,23 +170,15 @@ export function updateOwnership(
   fromAddress: string,
 ): void {
 
-  updateOwnershipPunkId = punkId;
-
-  let toAccount = getOrCreateAccount(toAddress);
-  let fromAccount = getOrCreateAccount(fromAddress);
-
-  let toHolderPunks = toAccount.punks;
-  let fromHolderPunks = fromAccount.punks;
-
   // also check current owner from our state to enforce the process
   // some weird wrapping contracts aren't properly tracked
   let ownerFromGraph = getPunkOwner(punkId)
-  if (ownerFromGraph != fromAccount.id) {
+  if (ownerFromGraph != fromAddress && fromAddress != ZERO_ADDRESS) {
 
     log.debug(`updateOwnershipInconsistency(): TXHash: {}, ownerFromGraph: {}, fromAccount.id: {}, Punk ID: {}`, [
       transactionHash.toHexString(),
       ownerFromGraph,
-      fromAccount.id.toString(),
+      fromAddress,
       punkId,
     ]);
     let ownerFromGraphAccount = getOrCreateAccount(ownerFromGraph);
@@ -195,6 +187,14 @@ export function updateOwnership(
     ownerFromGraphAccount.punks = ownerFromGraphPunks
     ownerFromGraphAccount.save()
   }
+
+  updateOwnershipPunkId = punkId;
+
+  let toAccount = getOrCreateAccount(toAddress);
+  let fromAccount = getOrCreateAccount(fromAddress);
+
+  let toHolderPunks = toAccount.punks;
+  let fromHolderPunks = fromAccount.punks;
 
   let state = getOrCreateState(blockTimestamp);
   let prevOwners = state.owners;
@@ -298,6 +298,30 @@ export function updateSaleState(evnt: Event): void {
   state.volume = state.volume.plus(evnt.value);
   state.usd = USDValue(evnt.blockTimestamp, evnt.blockNumber);
   state.save();
+}
+
+
+/**
+ * Checks if an ownership transfer should be processed for owner counting.
+ * @param fromAddress - The sender address.
+ * @param toAddress - The recipient address.
+ * @returns true if the transfer should be processed, false otherwise.
+ */
+export function shouldUpdateOwnership(fromAddress: string, toAddress: string): boolean {
+  // Do not update ownership if it's a transfer between wrapper contracts
+  if ((fromAddress === WRAPPER_ADDRESS && toAddress === C721_WRAPPER_ADDRESS) ||
+      (fromAddress === C721_WRAPPER_ADDRESS && toAddress === WRAPPER_ADDRESS)) {
+    return false;
+  }
+  
+  // Do not update if both addresses are wrapper contracts (but allow ZERO_ADDRESS)
+  if ((fromAddress === WRAPPER_ADDRESS || fromAddress === C721_WRAPPER_ADDRESS) &&
+      (toAddress === WRAPPER_ADDRESS || toAddress === C721_WRAPPER_ADDRESS)) {
+    return false;
+  }
+  
+  // Allow all other transfers including those involving ZERO_ADDRESS (mints/burns)
+  return true;
 }
 
 /**
