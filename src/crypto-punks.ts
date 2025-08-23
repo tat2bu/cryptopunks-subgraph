@@ -632,7 +632,10 @@ export function prepareThirdPartySale(event: WrappedTransfer):void {
         let tokenCount: BigInt = ctx.tokenIds != null && ctx.tokenIds.length > 0
                       ? BigInt.fromI32(ctx.tokenIds.length)
                       : BigInt.fromI32(1);
-        evnt.value = evnt.value.div(tokenCount);
+
+        if (evnt.platform == 'blur') {
+          evnt.value = evnt.value.div(tokenCount);
+        }
 
         evnt.save();
         
